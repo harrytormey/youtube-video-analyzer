@@ -101,7 +101,10 @@ def submit_veo3_request(prompt: str, duration: float, max_retries: int = 3) -> D
         "prompt": prompt,
         "duration": duration_str,
         "resolution": "720p",  # Options: 720p, 1080p
-        "quality": "medium"    # Options: low, medium, high
+        "quality": "medium",   # Options: low, medium, high
+        # Add consistency parameters if supported
+        "seed": 42,  # Fixed seed for consistent style
+        # "reference_image": reference_image_url,  # If we had a reference frame
     }
     
     last_error = None

@@ -1,0 +1,417 @@
+# Video Scene Analysis Report
+
+**Video:** input.mp4  
+**Detection Threshold:** 0.4  
+**Total Scenes:** 15  
+**Total Duration:** 34.6s  
+
+## Cost Estimate
+- Claude tokens: 11,200
+- Claude cost: $0.034
+- Estimated Veo3 cost: $3.36
+- **Total estimated cost: $3.39**
+
+## Scenes
+
+### scene_01 (00:00:00.000 - 00:00:01.001)
+
+**Duration:** 1.0s
+
+**Description:** A captivating cinematic sequence depicting a lone figure riding in what appears to be a subway or train carriage, illuminated by artificial lighting against a dark background. The scene creates a contemplative, urban atmosphere through its confined setting and muted color palette.
+
+**Scene Prompt:**
+```
+UNDERGROUND TRAIN - NIGHT (Urban Transit)[Beginning] In the sterile fluorescence of a moving subway car, a solitary passenger sits surrounded by empty seats. The stark overhead lighting casts harsh shadows across the utilitarian interior, highlighting the textured metal poles and plastic seating.The camera holds steady at eye level, positioned to capture the length of the carriage. Reflective surfaces of windows and metal fixtures create a complex interplay of light and shadow. The rhythmic motion of the train subtly influences the frame's stability.[Middle] Dark tunnels beyond the windows create an endless void, occasionally interrupted by fleeting lights that streak past. The industrial lighting system bathes everything in a cool, institutional glow around 4200K, creating sharp contrasts between illuminated surfaces and deep shadows.The subway car's interior features standard transit furnishings - parallel rows of blue-gray plastic seats, stainless steel support poles, and advertisements mounted above the windows. The floor shows typical wear patterns and reflects occasional glints of overhead lighting.[End] The composition maintains its steady framing, emphasizing the solitude of the journey. Ambient sounds of the train's movement would complement the visual atmosphere of late-night urban transit.Throughout the scene, the artificial lighting creates a distinctly modern, metropolitan mood. The confined space of the subway car frames the subject against a backdrop of urban infrastructure, while the darkness beyond the windows emphasizes the isolation of nighttime travel.
+```
+
+**Cinematic Notes:**
+```
+Camera: Static wide shot using a 35mm lens to capture the full width of the subway car while maintaining natural perspective. Lighting primarily from overhead fluorescent fixtures creating high contrast between lit areas and shadows. Color grade emphasizes cool tones while maintaining natural skin tones. Composition follows rule of thirds with strong leading lines created by the carriage interior.
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ✅
+- Complex characters: ⚠️
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_02 (00:00:01.001 - 00:00:04.004)
+
+**Duration:** 3.0s
+
+**Description:** A minimalist, moody brand sequence for The Wall Street Journal, transitioning from abstract bokeh lights floating in darkness to the iconic WSJ logotype. The sequence creates an atmosphere of sophistication and authority through carefully orchestrated light elements.
+
+**Scene Prompt:**
+```
+CORPORATE BRAND SEQUENCE - NIGHT (Ethereal, Premium)[Beginning] In rich darkness, a constellation of soft, square bokeh lights hangs suspended in space. The white lights vary in size and intensity, some crisp and defined while others glow with a gentle diffusion. They float weightlessly against the pure black backdrop, creating an abstract pattern of illuminated geometry.The lights drift with deliberate slowness, some moving laterally while others appear to float closer or recede deeper into the frame. Their motion suggests both randomness and orchestration, like celestial bodies in elegant orbit. The square shapes maintain perfect geometry despite their dreamy motion.[Middle] The floating lights gradually begin a subtle coordinated dance, their seemingly random movements revealing an underlying purpose. The brighter, larger squares start leading the eye downward while maintaining their ethereal drift. Darker areas of negative space expand strategically.[End] With masterful timing, the drifting lights give way to the emergence of 'THE WALL STREET JOURNAL' logotype in crisp white serif typography against the dark background. The transition feels inevitable yet surprising, as if the floating lights were always destined to reveal this identity. The logotype commands attention with perfect clarity and contrast against the deep gray-black backdrop.Throughout the sequence, the lighting maintains a cool, sophisticated temperature with pure white elements against rich darkness. No color is present, allowing the interplay of light and shadow to create a premium, authoritative mood befitting a respected financial publication.
+```
+
+**Cinematic Notes:**
+```
+Camera remains fixed throughout, allowing the motion of the bokeh elements to create dynamic visual interest. Shot likely achieved through a combination of practical defocused lights and precise motion graphics. Lighting progression carefully times the reveal of negative space. Grade emphasizes pure white highlights against deep, rich blacks with subtle gray midtones. Composition transforms from abstract pattern to centered typography with deliberate pacing.
+```
+
+**Diagnostics:**
+- Text heavy: ⚠️
+- Camera motion: ✅
+- Complex characters: ✅
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_03_chunk_01 (00:00:04.004 - 00:00:11.004)
+
+**Duration:** 7.0s
+
+**Description:** A humorous financial awareness video set in a nursery featuring a toddler positioned behind a tiny desk, with stacks of prop money placed beside them. The scene plays on the contrast between the innocent nursery setting and serious financial messaging about 401k fees.
+
+**Scene Prompt:**
+```
+NURSERY - DAY (Soft Natural Lighting)        The scene opens in a warmly lit nursery with light gray walls, featuring a white dresser and wooden crib in the background. A small toddler sits at a miniature wooden desk/high chair wearing a crisp white t-shirt. To their right, an impressive stack of prop money bundles creates a dramatic visual element.    The camera holds a medium shot, positioned at the toddler's eye level. The lighting is soft and diffused, likely from natural window light off-camera left, creating gentle shadows and maintaining the nursery's warm, innocent atmosphere. The color palette is muted with whites, beiges, and soft grays dominating the frame.    As the voiceover begins 'Oh, this is tragic, man...', the toddler's expression subtly shifts from neutral to a slight look of concern, perfectly timed with the dramatic tone of the audio. Their small movements and natural reactions add authenticity to the scene, while maintaining focus on the serious financial message about 401k fees.    Throughout the 7-second sequence, the camera maintains its steady position, allowing the toddler's natural micro-movements and expressions to carry the scene. The stack of money remains prominently displayed, serving as a powerful visual metaphor for the financial stakes being discussed.    The scene concludes with the toddler still engaged with the camera, their presence adding an element of innocent irony to the serious financial warning about investment losses.
+```
+
+**Cinematic Notes:**
+```
+Shot on a wide-angle lens (likely 35mm) to capture both subject and money stack while maintaining environmental context. Camera positioned at toddler eye-level using a tripod for stability. Natural lighting supplemented with soft fill light to maintain detail in shadows. Subtle warm color grade enhances nursery atmosphere while keeping skin tones natural. Sound design includes clean voiceover with light room tone to maintain authenticity.
+```
+
+**Diagnostics:**
+- Text heavy: ⚠️
+- Camera motion: ✅
+- Complex characters: ⚠️
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_03_chunk_02 (00:00:10.004 - 00:00:19.253)
+
+**Duration:** 9.2s
+
+**Description:** A toddler seated at a high chair in a nursery room appears to be giving financial advice, with a massive stack of cash bundles placed next to them on a table. The scene maintains a fixed camera position while the young subject delivers dialogue about E-Trade investments with subtle head movements and expressions.
+
+**Scene Prompt:**
+```
+NURSERY ROOM - DAY (Soft natural lighting through windows)
+
+In a modern, minimalist nursery with white walls and wooden furniture, a toddler in a pristine white t-shirt is seated in a natural wood high chair at table height. A white dresser stands against the wall to the left, while a wooden crib with white bars is visible in the background. Soft, diffused daylight fills the space, creating gentle shadows.
+
+The camera maintains a steady medium shot, positioned at the toddler's eye level. To the right of frame sits an impressively large stack of bundled cash notes, professionally wrapped and organized in neat layers. A computer keyboard rests on the table in front of the subject.
+
+As the voiceover begins with "Thankfully, E-Trade has low cost investments...", the toddler maintains earnest eye contact with the camera, their expression suggesting wisdom beyond their years. Their head makes subtle, professional-style movements as the dialogue continues, perfectly timed with "no hidden fees."
+
+The lighting remains consistent throughout - soft and naturalistic, with subtle shadows that add dimension without creating harsh contrasts. The color palette is deliberately muted, dominated by whites, warm woods, and the green tints of the cash stacks.
+
+In the final moments, as the voiceover concludes with "...there's a couple ways you could do it", the toddler's expression shifts ever so slightly to convey a knowing look, suggesting financial wisdom despite their young age. The stack of money remains prominently displayed, serving as a powerful visual metaphor.
+```
+
+**Cinematic Notes:**
+```
+Shot on a static camera with a medium-length lens (likely 50mm) to maintain natural facial proportions. Lighting appears to be from natural window sources with possible soft fill to eliminate harsh shadows. The frame is composed following the rule of thirds, with the subject positioned left of center and the money stack providing visual balance on the right. Color grade keeps skin tones natural while slightly desaturating the overall image for a clean, professional financial ad aesthetic.
+```
+
+**Diagnostics:**
+- Text heavy: ⚠️
+- Camera motion: ✅
+- Complex characters: ⚠️
+- Rapid motion: ✅
+- Duration warning: ⚠️
+
+---
+
+### scene_05 (00:00:19.319 - 00:00:20.487)
+
+**Duration:** 1.2s
+
+**Description:** A luxurious lounge scene featuring a tiny celebrant in formal attire raising a champagne flute in a toast, with a fancy milkshake on a red table and rich red leather seating in the background. The scene has a glamorous, playful energy with bokeh lighting effects.
+
+**Scene Prompt:**
+```
+UPSCALE LOUNGE - EVENING (Luxury ambiance with festive lighting)[Beginning] In an intimate lounge setting bathed in deep crimson lighting and dreamy bokeh effects, we open on a luxurious curved leather booth with rich red upholstery. A polished red circular table holds an elaborate milkshake creation topped with whipped cream and decorative garnishes.The camera holds steady as a small figure in classic black tie attire, complete with bow tie and sunglasses perched atop their head, emerges from behind the booth's high back. With precise comedic timing, they raise a champagne flute upward in a celebratory toast, beaming with infectious joy.[Middle] The lighting design creates an enchanted atmosphere - warm red ambient light mingles with floating bokeh highlights that drift lazily across the frame. The leather booth gleams with subtle highlights, while the milkshake's crystalline glass catches and fractures the ambient glow.[End] The scene maintains its composed framing as the raised glass gesture holds, allowing the theatrical moment to land with both sophistication and whimsy. The overall effect is one of cinematic fantasy - a perfect blend of high-end ambiance and playful charm.Throughout the scene, carefully crafted lighting bathes everything in rich, warm tones while maintaining clear separation between subject and background. The bokeh effects add a magical quality that enhances the celebratory mood.
+```
+
+**Cinematic Notes:**
+```
+Camera remains locked off on tripod in medium-wide shot, allowing the action and composition to play out in a single elegant frame. Shot on high-end cinema camera with shallow depth of field. Lighting uses multiple red-gelled sources plus practical twinkle lights or light arrays for bokeh. Color grade emphasizes rich reds while maintaining natural skin tones. Sound design should include subtle lounge ambiance.
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ✅
+- Complex characters: ⚠️
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_06 (00:00:20.487 - 00:00:21.488)
+
+**Duration:** 1.0s
+
+**Description:** A dynamic polo match scene showing three mounted players in coordinated motion as they pursue and strike a ball across the field. The sequence captures the fluid grace of equestrian sport with riders in traditional polo attire maneuvering their horses in formation.
+
+**Scene Prompt:**
+```
+PRIVATE POLO GROUNDS - LATE AFTERNOON (Golden hour, dappled forest backdrop)[Beginning] Three polo players on horseback move in tight formation across a manicured grass field. The leftmost rider wears a salmon-colored polo shirt and white pants, mounted on a dark brown horse. In the center, a player in light attire guides their chestnut horse in pursuit of a white polo ball. The rightmost player, in a two-toned shirt, maintains position on a light brown mount.The camera tracks laterally with the riders in smooth motion, maintaining a mid-range profile shot that emphasizes the synchronicity between horses and riders. Natural afternoon light filters through the tree line, creating dynamic highlights on the horses' coats and the players' pristine white pants.[Middle] The central rider extends their mallet toward the ground at a precise angle, preparing to strike the ball. The horses' muscles ripple with controlled power as they maintain their coordinated gallop. Leather tack and metal stirrups gleam in the sunlight.[End] The formation holds as the players guide their mounts in pursuit of the play, mallets positioned for strategic engagement. The background reveals glimpses of forested grounds through a soft bokeh effect.Throughout the scene, the late afternoon lighting creates a rich, warm atmosphere that accentuates the traditional sporting elements while casting gentle shadows across the field. The horses' synchronized movement suggests years of training and partnership between mount and rider.
+```
+
+**Cinematic Notes:**
+```
+Shot on telephoto lens (85-200mm) to compress depth and isolate subjects against blurred background. Camera tracks smoothly from left to right at horse-gallop speed. Natural lighting leveraged for dramatic highlights on equipment and creating depth through shadow. Composition maintains rule of thirds with horses' heads as key focal points. Color grade emphasizes warm tones while preserving neutral whites for clothing contrast.
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ⚠️
+- Complex characters: ⚠️
+- Rapid motion: ⚠️
+- Duration warning: ✅
+
+---
+
+### scene_07 (00:00:21.488 - 00:00:22.589)
+
+**Duration:** 1.1s
+
+**Description:** A toddler in a white shirt performs a dance move with raised arms in what appears to be a studio setting, with blurred background figures visible. The number '6' is partially visible in the upper portion of the frame. A 'Professional stunts' disclaimer appears at the bottom.
+
+**Scene Prompt:**
+```
+DANCE STUDIO - DAY (Commercial shoot setting)
+[Beginning] In a brightly lit professional studio space, we open on an intimate medium shot of a small child performer centered in frame against a softly defocused background. The lighting is clean and even, with soft key lights creating gentle shadows.
+
+The camera holds steady as the young talent, dressed in a simple white t-shirt, begins to raise both arms upward in a choreographed dance move. Their movement is natural and uninhibited, capturing an authentic moment of childhood expression.
+
+The background reveals hints of other performers in soft bokeh, while a numerical marker '6' hovers above, suggesting a commercial production environment. The scene maintains shallow depth of field throughout, keeping focus locked on the central performer.
+
+[Middle] As the arms reach their peak position, we see the complete pose held with innocent concentration, eyes focused just off-camera where likely a choreographer or parent stands.
+
+[End] The sequence concludes with the arms fully extended upward, framing the young performer's face in a moment of pure, unguarded expression. A subtle disclaimer about professional stunts appears as a lower third graphic.
+```
+
+**Cinematic Notes:**
+```
+Shot on a high-end digital cinema camera with a medium telephoto lens (likely 85mm or 100mm) at a wide aperture to achieve the shallow depth of field. Clean, commercial-grade lighting setup with soft boxes and fill lights creating even illumination. Color grade is neutral and natural, emphasizing skin tones. Camera remains locked off on tripod for stability. The composition follows the rule of thirds with the subject's face positioned in the upper intersection points.
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ✅
+- Complex characters: ✅
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_09 (00:00:22.656 - 00:00:23.724)
+
+**Duration:** 1.1s
+
+**Description:** A stately portrait in an ornate golden frame comes alive through subtle animation, evoking a classical 18th century European royal painting. The subject wears a formal military-style uniform with decorative elements against a dark background, creating a dramatically lit composition reminiscent of traditional court portraiture.
+
+**Scene Prompt:**
+```
+GRAND GALLERY - TIMELESS AMBIENT LIGHTING[Beginning] An antique gold-leafed frame dominates the view, its baroque flourishes catching subtle highlights. Within, a formal portrait emerges from darkness - a young subject in a high-collared white and black military dress uniform adorned with medals and insignia. The camera slowly pushes in as the portrait subtly animates to life through dimensional lighting that sculpts the face with Rembrandt-style illumination from the upper left. The dark eyes gaze directly into camera with a solemn, aristocratic bearing.The ornate frame remains static while inner elements gain increasing dimensionality through parallax movement. Shadows deepen along the right side of the uniform while highlights accent the gold braid and medals on the left breast.[End] The sequence concludes with the portrait fully dimensional yet maintaining its classical painted quality, the subject's unwavering gaze fixed on the viewer as ambient light continues playing across the sculpted features.Throughout, warm gallery lighting catches the gold leaf frame's carved details while the portrait itself is lit with dramatic chiaroscuro emphasizing the formal composition's gravitas and timeless quality.
+```
+
+**Cinematic Notes:**
+```
+Shot on 50mm lens with extremely subtle dolly push. Lighting progression moves from flat 2D portrait lighting to shaped dimensional lighting with strong key light from upper left. Color grade maintains rich golden warmth in frame while portrait itself stays cooler with deep shadows. Extremely slow, controlled camera movement maintains portrait's formal composition while allowing subtle dimensionality to emerge.
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ⚠️
+- Complex characters: ⚠️
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_10 (00:00:23.724 - 00:00:24.858)
+
+**Duration:** 1.1s
+
+**Description:** A tense moment during the Running of the Bulls in Pamplona, Spain, capturing a narrow escape as a charging bull approaches on cobblestone streets while spectators scramble to safety
+
+**Scene Prompt:**
+```
+PAMPLONA STREETS, SPAIN - EARLY MORNING (San Fermin Festival)[Beginning] On the ancient cobblestone streets of Pamplona, morning light catches the moisture on worn stones. A parent carrying a small child in a baby carrier moves urgently across the frame from right to left, while scattered papers flutter on the ground. The massive form of a brown bull with prominent horns enters from the right edge.[Middle] The camera holds steady at street level as the parent, dressed in traditional white festival clothing with a red sash, makes quick lateral movements while keeping eyes on the approaching bull. The baby, wearing a black carrier and sun hat, bounces slightly with each step. Scattered festival programs and papers slide across the uneven cobblestones in the bull's wake. The morning light creates stark shadows between the stones, adding dramatic contrast to the scene.[End] The sequence builds tension as the bull's muscular form fills more of the right side of frame, its horns clearly visible and threatening. The parent continues the careful sideways movement, maintaining a defensive posture while protecting the child. Other runners in striped shirts and festival whites can be glimpsed moving urgently in the background. The worn textures of the historic street and buildings provide a timeless backdrop to this ancient tradition.Throughout the scene, natural morning light streams at an angle across the street, catching the edges of the cobblestones and creating a dramatic interplay of light and shadow. The handheld camera maintains a steady wide shot that emphasizes both the confined space and the dangerous proximity of the bull to the subjects.
+```
+
+**Cinematic Notes:**
+```
+Shot on wide angle lens (24-35mm) to capture both the scale of the bull and the context of the narrow street. Camera maintains a relatively steady position at waist height, creating an intimate perspective. Natural morning lighting provides dramatic side illumination with deep shadows between cobblestones. Color grading emphasizes the contrast between the whites of the traditional clothing and the weathered greys of the street. Background architecture and texture of the cobblestones add vital historical context and authenticity.
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ✅
+- Complex characters: ⚠️
+- Rapid motion: ⚠️
+- Duration warning: ✅
+
+---
+
+### scene_12 (00:00:24.992 - 00:00:25.859)
+
+**Duration:** 0.9s
+
+**Description:** A surreal, humorous scene aboard the International Space Station featuring an astronaut and a dog both wearing space helmets, floating in zero gravity with Earth visible through the windows. The image captures the whimsical juxtaposition of space exploration and a pet companion, enhanced by the WSJ Live watermark.
+
+**Scene Prompt:**
+```
+INT. INTERNATIONAL SPACE STATION - EARTH ORBIT (Zero Gravity Environment)[Beginning] In the sterile white interior of the ISS, two figures float gracefully in zero gravity - an astronaut in a full white spacesuit and a brown bulldog wearing a custom space helmet. Bright sunlight streams through the rectangular windows, revealing the brilliant blue Earth and wispy white clouds below.The camera holds steady as both subjects hover in perfect symmetry, their helmets catching reflections from the station's interior lighting. The astronaut's helmet creates a perfect circular frame for their face, while the dog's custom helmet highlights its distinctive bulldog features.[Middle] The stark white walls of the space station provide a clinical backdrop, contrasting with the organic curves of Earth visible through multiple windows. LED displays and control panels emit a subtle blue glow. The subjects remain suspended in the ethereal environment, their bodies oriented at matching angles that suggest they're both experiencing the same zero-gravity conditions.[End] The composition maintains its surreal balance, with both the human and canine astronauts appearing equally at home in the weightless environment. The Earth continues to drift past the windows, creating a dynamic background that emphasizes the scene's location in low Earth orbit.Throughout the scene, the lighting alternates between harsh direct sunlight through the windows and the diffused artificial lighting of the station's interior, creating a complex play of highlights and shadows across the spacesuits and helmets.
+```
+
+**Cinematic Notes:**
+```
+Camera: Static wide shot using ultra-wide lens to capture both subjects and space station interiorLighting: Mix of natural sunlight through windows (5600K) and artificial interior lighting (4000K)Composition: Symmetrical framing with subjects positioned at equal distances from centerColor grade: Clean, clinical whites with subtle blue tint to enhance space environmentKey elements: Reflections on helmet visors, Earth visible through windows, zero gravity positioning
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ✅
+- Complex characters: ⚠️
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_14 (00:00:25.993 - 00:00:26.994)
+
+**Duration:** 1.0s
+
+**Description:** A surreal and whimsical scene set in an oceanside hot tub at sunset, featuring a child and a giant panda lounging together in the steaming water against a golden horizon. The scene captures a dreamlike moment of peaceful coexistence.
+
+**Scene Prompt:**
+```
+OCEANSIDE HOT TUB - SUNSET (Dreamlike, Surreal Atmosphere)[Beginning] The scene opens on a luxurious infinity-edge hot tub perched on an oceanside cliff. Golden hour sunlight bathes everything in warm amber tones, with a pastel yellow and orange sky meeting the endless ocean horizon. Steam rises gently from the crystal-clear water that ripples with subtle movement.[Middle] A close medium shot frames the hot tub where a child floats peacefully in the water, while an adult-sized giant panda reclines casually against the tub's edge, its black and white fur glistening with moisture. The unlikely pair share the space with complete naturalness, as if this surreal scenario was perfectly ordinary. The water gently undulates around them both.[End] The composition holds steady as steam continues dancing upward, catching the sunset light. Waves crash softly against the rocks below, providing peaceful ambient sound. The hot tub appears to blend seamlessly with the ocean beyond, creating a dreamy infinity effect enhanced by the ethereal lighting.Throughout the scene, natural lens flares streak across frame as the sun's rays catch the rising steam. The lighting remains warm and golden, with subtle orange and purple undertones in the sky. Reflections dance across the water's surface, adding to the magical atmosphere.
+```
+
+**Cinematic Notes:**
+```
+Camera: Static medium shot, 35mm lens to capture natural perspectiveLighting: Natural golden hour sunlight from behind creates rim lighting and lens flaresColor grade: Warm temperature, enhanced orange/yellow in highlights, deeper blues in shadowsComposition: Rule of thirds with horizon line, subjects balanced in frameMood: Peaceful, surreal, dreamlike quality throughout
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ✅
+- Complex characters: ⚠️
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_15 (00:00:26.994 - 00:00:28.095)
+
+**Duration:** 1.1s
+
+**Description:** A joyful nautical-themed sequence combining an enthusiastic young sailor in captain's attire with a luxury yacht party scene, creating a playful juxtaposition between childhood imagination and actual maritime leisure
+
+**Scene Prompt:**
+```
+LUXURY YACHT - BRIGHT AFTERNOON (Split-screen transition effect)[Beginning] In brilliant natural sunlight, the frame opens on a close-up selfie-style shot featuring a beaming young figure in a crisp white sailor's uniform and ceremonial captain's hat with gold braiding and anchor insignia. The lighting is warm and natural, casting soft shadows while highlighting the pristine white of the uniform.The camera holds steady as genuine laughter erupts, creating an infectious moment of pure joy. The naval captain's hat sits at a slight playful angle, its black brim and gold details gleaming in the sunlight.[Middle] Through a dynamic split-screen transition, the scene seamlessly flows to the deck of a luxury yacht. The polished teak decking stretches across the frame, leading to a group of revelers enjoying the maritime atmosphere. The mountainous coastline provides a dramatic backdrop, with azure waters sparkling below.[End] The sequence concludes with the party scene in full view - multiple figures visible on the yacht's deck, some standing, others lounging, all clearly enjoying the perfect boating weather. The yacht's clean white hull contrasts beautifully with the deep blue ocean, while the mountains create a sense of scale and majesty.Throughout the scene, natural maritime lighting bathes everything in a bright, cheerful glow. The combination of white nautical elements, blue water and sky, and wooden deck creates a classic seafaring color palette.
+```
+
+**Cinematic Notes:**
+```
+Camera work employs a creative split-screen technique to bridge two thematically linked but separate maritime moments. The first shot maintains a tight, personal framing that captures spontaneous emotion, while the second opens up to a wide establishing shot showcasing the full yacht scene. Natural lighting is key throughout, with particular attention to how it plays off the white surfaces of uniforms and boat surfaces. Color grading emphasizes blues and whites to reinforce the nautical theme.
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ⚠️
+- Complex characters: ⚠️
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_17 (00:00:28.161 - 00:00:29.263)
+
+**Duration:** 1.1s
+
+**Description:** A beached sailboat scene featuring a young figure in a captain's hat and coral-colored life vest, with the tilted vessel dramatically stranded on a sandy shore behind them. The short sequence captures both whimsy and maritime misfortune in a single moment.
+
+**Scene Prompt:**
+```
+BEACHED SAILBOAT - LATE AFTERNOON (Coastal location, dramatic lighting)[Beginning] On a sun-drenched beach, we open on a wide shot capturing a pristine white sailboat lying at an awkward 45-degree angle, its masts cutting dramatic diagonals against a crystal blue sky dotted with cumulus clouds. The vessel's hull gleams in the golden hour light.[Middle] The camera smoothly tracks right to reveal a tiny figure in the foreground, wearing a crisp white captain's hat with gold naval embellishments and a coral-colored life vest. The positioning creates a stark contrast between the small foreground figure and the massive beached vessel behind.[End] The composition holds steady in its final form, with the beached sailboat and figure perfectly framed against the natural backdrop of rolling hills and calm waters in the distance. Harsh shadows from the low sun create dramatic contrast across the scene.Throughout the sequence, natural lighting bathes everything in warm late-afternoon glow, with lens flares catching on the boat's metallic fixtures. The color palette contrasts the coral safety vest against blues of sky and water, while the white boat and captain's hat provide bright highlights.
+```
+
+**Cinematic Notes:**
+```
+Camera Movement: Smooth lateral tracking shot from left to rightLens: Wide angle 24mm to capture both boat scale and figureLighting: Natural late afternoon sunlight from camera right creating long shadowsColor Grade: Warm golden tones emphasized, blues slightly saturatedComposition: Rule of thirds with boat and figure balanced against negative spaceMood: Blend of childhood innocence against maritime mishap
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ⚠️
+- Complex characters: ⚠️
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+
+### scene_18 (00:00:29.263 - 00:00:31.398)
+
+**Duration:** 2.1s
+
+**Description:** A humorous sequence in a nursery showing progression of a toddler in a high chair reaching for and attempting to grab stacks of prop money on a desk, capturing the innocent greed and comedic timing of the moment
+
+**Scene Prompt:**
+```
+NURSERY - DAYTIME (Bright interior lighting, WSJ broadcast setup)[Beginning] In a softly-lit modern nursery with white furniture, a toddler sits alertly in a wooden high chair, wearing a crisp white t-shirt. The camera is positioned at desk height, framing the child against a background of a white dresser and wooden crib. To the right, stacks of prop money are artfully arranged on the desk surface alongside a computer keyboard.The camera holds steady as the child's expression shifts from curious observation to focused interest, their eyes locked on the money pile. Natural daylight streams in from an off-camera window, creating gentle shadows and highlighting the child's blonde hair.[Middle] The toddler's body language transforms from passive to active as they begin leaning forward, small hands gripping the high chair tray. The movement is deliberate but toddler-clumsy, creating natural comedy as they stretch toward the tantalizing stack of cash.[End] The sequence culminates with the child fully extended, torso thrust forward and arms outstretched toward the money pile, their expression intensely focused on the target. The camera maintains its stable position, allowing the child's movement to create the dynamic energy within the frame.Throughout the scene, the professional broadcast lighting remains consistent, creating a polished news segment aesthetic while maintaining the natural charm of the nursery setting. The money stacks remain pristinely arranged, suggesting this is a controlled shot for comedic effect.
+```
+
+**Cinematic Notes:**
+```
+Shot on broadcast video camera with medium-wide lens to capture both subject and money props in frame. Camera mounted on tripod for stability. Key light positioned camera-left with fill from window. Clean white balance enhances nursery aesthetic. Composition follows rule of thirds with subject left, money right. Hold steady framing allows child's motion to drive visual interest.
+```
+
+**Diagnostics:**
+- Text heavy: ✅
+- Camera motion: ✅
+- Complex characters: ⚠️
+- Rapid motion: ⚠️
+- Duration warning: ✅
+
+---
+
+### scene_19 (00:00:31.398 - 00:00:34.067)
+
+**Duration:** 2.7s
+
+**Description:** A minimalist corporate motion graphics sequence for E*TRADE, featuring an animated typographic transition where the letters 'E' and 'T' slide across the screen to form the full E*TRADE logo against a deep purple gradient background, concluding with the company's tagline and legal disclaimer text.
+
+**Scene Prompt:**
+```
+CORPORATE MOTION GRAPHICS - NIGHT AESTHETIC
+
+[Beginning] Against a rich, dark purple gradient background that radiates from the center, we open on a stark white 'E' positioned on the far left of frame. A thin white horizontal line extends across the entire width of the composition, serving as a pathway. The 'T' waits on the far right, perfectly aligned.
+
+The camera holds steady as the letters begin their choreographed motion. The 'E' and 'T' glide smoothly toward center frame along the white line, moving with precise, mechanical timing. As they converge, additional letters materialize to spell out 'TRADE', appearing with subtle fade-ins.
+
+The asterisk symbol, rendered in a distinctive lime green, materializes between the 'E' and 'TRADE' with a subtle pop. The tagline 'LESS FOR US | MORE FOR YOU' fades in below in clean, white typography. The entire logo assembly settles into perfect center alignment as 'etrade.com' appears beneath.
+
+[End] The sequence resolves with the complete E*TRADE branded lockup floating prominently in the frame's center, while legal disclaimer text smoothly fades in at the bottom. The WSJ Live watermark maintains presence in the lower right corner throughout. The deep purple gradient background adds sophistication while creating depth through subtle radial movement.
+```
+
+**Cinematic Notes:**
+```
+Camera remains locked and static, allowing the motion graphics elements to create the visual drama. The composition employs corporate-clean typography against a rich purple gradient that suggests both technology and financial sophistication. The lighting creates a nighttime/digital aesthetic with the bright white elements contrasting sharply against the dark background. The motion design uses precise, mechanical movements suggesting reliability and precision. The green asterisk provides the only color accent, drawing attention to the brand's signature mark.
+```
+
+**Diagnostics:**
+- Text heavy: ⚠️
+- Camera motion: ✅
+- Complex characters: ✅
+- Rapid motion: ✅
+- Duration warning: ✅
+
+---
+

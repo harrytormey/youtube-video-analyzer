@@ -191,11 +191,6 @@ def split_long_scene(scene: Dict[str, Any], dialogue_data: Dict[str, Any]) -> Li
             chunks[-1]['duration'] = end_time - chunks[-1]['start_seconds']
             break
         
-        # Extract dialogue for this chunk
-        chunk_dialogue = extract_dialogue_for_timerange(
-            dialogue_data, current_start - start_time, current_end - start_time
-        )
-        
         chunk = {
             'id': f"{scene['id']}_chunk_{chunk_num:02d}",
             'parent_scene_id': scene['id'],
@@ -206,8 +201,9 @@ def split_long_scene(scene: Dict[str, Any], dialogue_data: Dict[str, Any]) -> Li
             'start_seconds': current_start,
             'end_seconds': current_end,
             'duration': current_end - current_start,
+            'original_duration': scene['duration'],  # Store original scene duration
             'is_chunk': True,
-            'dialogue': chunk_dialogue,
+            'dialogue': "",  # Will be assigned later to avoid duplication
             'overlap_with_previous': overlap if chunk_num > 1 else 0,
             'overlap_with_next': overlap if current_end < end_time else 0
         }
@@ -222,24 +218,61 @@ def split_long_scene(scene: Dict[str, Any], dialogue_data: Dict[str, Any]) -> Li
     for chunk in chunks:
         chunk['total_chunks'] = len(chunks)
     
+    # Split dialogue cleanly across chunks to avoid duplication
+    chunks = split_dialogue_across_chunks(dialogue_data, chunks)
+    
     typer.echo(f"Split {scene['id']} ({scene['duration']:.1f}s) into {len(chunks)} chunks")
+    for chunk in chunks:
+        if chunk['dialogue']:
+            typer.echo(f"  {chunk['id']}: '{chunk['dialogue'][:50]}...'")
+        else:
+            typer.echo(f"  {chunk['id']}: [Visual action only]")
+    
     return chunks
 
-def extract_dialogue_for_timerange(dialogue_data: Dict[str, Any], start_offset: float, end_offset: float) -> str:
-    """Extract dialogue that occurs within a specific time range."""
+def split_dialogue_across_chunks(dialogue_data: Dict[str, Any], chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Split dialogue cleanly across chunks to avoid duplication."""
     if not dialogue_data.get("segments"):
-        return dialogue_data.get("text", "")
-    
-    relevant_segments = []
-    for segment in dialogue_data["segments"]:
-        seg_start = segment.get("start", 0)
-        seg_end = segment.get("end", 0)
+        # No timestamped segments, just split text evenly
+        full_text = dialogue_data.get("text", "")
+        if not full_text:
+            return chunks
         
-        # Include segment if it overlaps with our time range
-        if seg_start < end_offset and seg_end > start_offset:
-            relevant_segments.append(segment["text"].strip())
+        sentences = [s.strip() + "." for s in full_text.split(".") if s.strip()]
+        sentences_per_chunk = max(1, len(sentences) // len(chunks))
+        
+        for i, chunk in enumerate(chunks):
+            start_idx = i * sentences_per_chunk
+            end_idx = start_idx + sentences_per_chunk if i < len(chunks) - 1 else len(sentences)
+            chunk_sentences = sentences[start_idx:end_idx]
+            chunk['dialogue'] = " ".join(chunk_sentences)
+        
+        return chunks
     
-    return " ".join(relevant_segments).strip()
+    # Assign each dialogue segment to the chunk where it primarily occurs
+    for chunk in chunks:
+        chunk['dialogue'] = ""
+        chunk_start = chunk['start_seconds'] - chunks[0]['start_seconds']  # Relative to scene start
+        chunk_end = chunk['end_seconds'] - chunks[0]['start_seconds']
+        
+        relevant_segments = []
+        for segment in dialogue_data["segments"]:
+            seg_start = segment.get("start", 0)
+            seg_end = segment.get("end", 0)
+            seg_midpoint = (seg_start + seg_end) / 2
+            
+            # Assign segment to chunk if its midpoint falls within chunk bounds
+            # This prevents duplication - each segment goes to only one chunk
+            if chunk_start <= seg_midpoint < chunk_end:
+                relevant_segments.append(segment["text"].strip())
+        
+        chunk['dialogue'] = " ".join(relevant_segments).strip()
+        
+        # If no dialogue assigned to this chunk, add context from adjacent chunks
+        if not chunk['dialogue'] and len(chunks) > 1:
+            chunk['dialogue'] = "[Continuing scene with visual action]"
+    
+    return chunks
 
 def image_to_base64(image_path: str) -> str:
     """Convert image to base64 string."""
@@ -287,12 +320,29 @@ DIALOGUE/AUDIO CONTENT:
 IMPORTANT: Include this dialogue/audio in your scene description. Describe when and how it's spoken/heard during the sequence.
 """
 
+        chunk_context = ""
+        if scene.get('is_chunk'):
+            chunk_context = f"""
+CHUNK CONTINUITY INFO:
+This is chunk {scene['chunk_number']} of {scene['total_chunks']} from scene {scene['parent_scene_id']}.
+Original scene duration: {scene.get('original_duration', 'unknown')}s
+
+VISUAL CONSISTENCY REQUIREMENTS:
+- Maintain consistent character appearance, clothing, and positioning
+- Keep same lighting, color palette, and environmental details
+- Ensure smooth visual flow from previous chunks
+- Characters should maintain same age, ethnicity, and styling
+- Location and camera setup should remain consistent
+- This should feel like a continuous sequence, not separate clips
+
+"""
+
         prompt = f"""You are an expert cinematographer and director. Analyze these {frame_count} frames from a {scene['duration']:.1f}-second video scene and create an EXTREMELY DETAILED cinematic prompt for Veo3.
 
 Scene timing: {scene['start_time']} to {scene['end_time']}
 Duration: {scene['duration']:.1f} seconds
 
-{frame_analysis_text}{dialogue_section}
+{frame_analysis_text}{dialogue_section}{chunk_context}
 
 CRITICAL: Describe this as a TEMPORAL SEQUENCE showing progression from beginning to end. Don't just describe static images - describe the MOTION, TRANSITIONS, and FLOW between moments.
 
@@ -564,7 +614,8 @@ def analyze_command(
                 
                 # Analyze each chunk
                 for chunk in scene_chunks:
-                    chunk_dialogue = chunk.get('dialogue', dialogue_data["text"])
+                    # Dialogue is already cleanly assigned to chunks to avoid duplication
+                    chunk_dialogue = chunk.get('dialogue', "")
                     
                     # For chunks, we need to extract frames specific to the chunk timerange
                     if chunk.get('is_chunk'):
