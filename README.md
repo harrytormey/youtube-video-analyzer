@@ -61,16 +61,30 @@ python cli.py analyze input.mp4 --estimate-only
 python cli.py analyze input.mp4 --markdown
 ```
 
+### List Scenes
+```bash
+# List all available scenes with descriptions  
+python cli.py list-scenes scene_prompts.json
+
+💡 This shows scene IDs and descriptions to help you choose which ones to generate
+```
+
 ### Generate
 ```bash
 # Generate all clips
 python cli.py generate scene_prompts.json --output-dir ./clips/
+
+# Generate specific scenes by ID
+python cli.py generate scene_prompts.json --scenes "scene_01,scene_05,scene_10"
 
 # Dry run (preview what would be generated)
 python cli.py generate scene_prompts.json --dry-run
 
 # Limit to first 5 scenes
 python cli.py generate scene_prompts.json --max-scenes 5
+
+# Generate specific scenes with custom output directory
+python cli.py generate scene_prompts.json --scenes "scene_03,scene_07" --output-dir ./custom_clips/
 ```
 
 ### Stitch
@@ -150,7 +164,36 @@ Estimated Veo3 cost: $4.53
 Total estimated cost: $4.56
 ```
 
-## 🎯 Scene Analysis
+## 🎯 Scene Selection & Analysis
+
+### Selecting Specific Scenes
+
+After running analysis, you can choose which scenes to generate:
+
+1. **List all scenes** to see what's available:
+   ```bash
+   python cli.py list-scenes scene_prompts.json
+   ```
+
+2. **Select specific scenes** by their IDs:
+   ```bash
+   # Generate just the scenes you want
+   python cli.py generate scene_prompts.json --scenes "scene_01,scene_05,scene_10"
+   
+   # Preview what would be generated
+   python cli.py generate scene_prompts.json --scenes "scene_01,scene_05" --dry-run
+   ```
+
+3. **Alternative selection methods**:
+   ```bash
+   # First N scenes
+   python cli.py generate scene_prompts.json --max-scenes 3
+   
+   # All scenes (default)
+   python cli.py generate scene_prompts.json
+   ```
+
+### Scene Analysis Details
 
 Claude analyzes each scene and provides:
 
@@ -230,6 +273,48 @@ python cli.py generate scene_prompts.json --skip-existing
 # Add verbose output for debugging
 export DEBUG=1
 python cli.py workflow --url "https://youtu.be/abc123"
+```
+
+## 🎯 Selective Scene Generation Examples
+
+### Example 1: Preview and Select Best Scenes
+```bash
+# After analysis, browse all scenes
+python cli.py list-scenes scene_prompts.json
+
+# Preview specific interesting scenes
+python cli.py generate scene_prompts.json --scenes "scene_03,scene_10,scene_15" --dry-run
+
+# Generate only the best ones
+python cli.py generate scene_prompts.json --scenes "scene_03,scene_10"
+```
+
+### Example 2: Generate Scenes by Content Type
+```bash
+# Looking at the scene list output, select by content:
+# Character scenes: scene_03, scene_07, scene_18
+python cli.py generate scene_prompts.json --scenes "scene_03,scene_07,scene_18"
+
+# Action scenes: scene_06, scene_10  
+python cli.py generate scene_prompts.json --scenes "scene_06,scene_10"
+
+# Logo/branding: scene_19
+python cli.py generate scene_prompts.json --scenes "scene_19"
+```
+
+### Example 3: Iterative Generation
+```bash
+# Start with just one scene to test quality
+python cli.py generate scene_prompts.json --scenes "scene_01"
+
+# Review the result, then generate more
+python cli.py generate scene_prompts.json --scenes "scene_05,scene_07" 
+
+# Add final scenes after reviewing
+python cli.py generate scene_prompts.json --scenes "scene_12,scene_19"
+
+# Stitch all generated clips
+python cli.py stitch ./clips/ --output final_video.mp4
 ```
 
 ## 🤝 Contributing

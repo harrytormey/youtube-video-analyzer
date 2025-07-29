@@ -56,16 +56,51 @@ def analyze(
     """🎬 Analyze video scenes and generate Veo3 prompts using Claude."""
     analyze_command(video=video, output=output, threshold=threshold, estimate_only=estimate_only, markdown=markdown)
 
+@app.command("list-scenes")
+def list_scenes(
+    prompts: str = typer.Argument(..., help="JSON file with scene prompts")
+):
+    """📋 List all available scenes from the prompts file."""
+    import json
+    
+    if not os.path.exists(prompts):
+        typer.echo(f"Error: Prompts file not found: {prompts}", err=True)
+        raise typer.Exit(1)
+    
+    try:
+        with open(prompts, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        typer.echo(f"Error loading prompts file: {e}", err=True)
+        raise typer.Exit(1)
+    
+    scenes = data.get('scenes', [])
+    if not scenes:
+        typer.echo("No scenes found in prompts file", err=True)
+        raise typer.Exit(1)
+    
+    typer.echo(f"📋 Available scenes ({len(scenes)} total):")
+    typer.echo()
+    
+    for i, scene in enumerate(scenes, 1):
+        duration = scene.get('duration', 0)
+        description = scene.get('description', 'No description')[:80] + "..." if len(scene.get('description', '')) > 80 else scene.get('description', 'No description')
+        
+        typer.echo(f"{i:2d}. {scene['id']} ({duration:.1f}s)")
+        typer.echo(f"    {description}")
+        typer.echo()
+
 @app.command("generate")
 def generate(
     prompts: str = typer.Argument(..., help="JSON file with scene prompts"),
     output_dir: str = typer.Option("./clips/", "--output-dir", help="Output directory for clips"),
     skip_existing: bool = typer.Option(True, "--skip-existing/--overwrite", help="Skip existing clips"),
     max_scenes: Optional[int] = typer.Option(None, "--max-scenes", help="Limit number of scenes to generate"),
+    scenes: Optional[str] = typer.Option(None, "--scenes", help="Specific scene IDs to generate (comma-separated, e.g., 'scene_01,scene_03,scene_05')"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be generated without actually doing it")
 ):
     """🎥 Generate video clips from scene prompts using Veo3 via fal.ai."""
-    generate_command(prompts=prompts, output_dir=output_dir, skip_existing=skip_existing, max_scenes=max_scenes, dry_run=dry_run)
+    generate_command(prompts=prompts, output_dir=output_dir, skip_existing=skip_existing, max_scenes=max_scenes, scenes=scenes, dry_run=dry_run)
 
 @app.command("stitch")
 def stitch(

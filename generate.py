@@ -256,6 +256,7 @@ def generate_command(
     output_dir: str = typer.Option("./clips/", "--output-dir", help="Output directory for clips"),
     skip_existing: bool = typer.Option(True, "--skip-existing/--overwrite", help="Skip existing clips"),
     max_scenes: Optional[int] = typer.Option(None, "--max-scenes", help="Limit number of scenes to generate"),
+    scenes: Optional[str] = typer.Option(None, "--scenes", help="Specific scene IDs to generate (comma-separated, e.g., 'scene_01,scene_03,scene_05')"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be generated without actually doing it")
 ):
     """Generate video clips from scene prompts using Veo3."""
@@ -272,15 +273,38 @@ def generate_command(
         typer.echo(f"Error loading prompts file: {e}", err=True)
         raise typer.Exit(1)
     
-    scenes = data.get('scenes', [])
-    if not scenes:
+    all_scenes = data.get('scenes', [])
+    if not all_scenes:
         typer.echo("Error: No scenes found in prompts file", err=True)
         raise typer.Exit(1)
     
-    # Limit scenes if requested
-    if max_scenes:
-        scenes = scenes[:max_scenes]
+    # Filter scenes based on parameters
+    if scenes:
+        # Parse specific scene IDs
+        requested_scene_ids = [s.strip() for s in scenes.split(',')]
+        filtered_scenes = []
+        
+        for scene_id in requested_scene_ids:
+            scene = next((s for s in all_scenes if s['id'] == scene_id), None)
+            if scene:
+                filtered_scenes.append(scene)
+            else:
+                typer.echo(f"Warning: Scene '{scene_id}' not found in prompts file", err=True)
+        
+        if not filtered_scenes:
+            typer.echo("Error: No valid scenes found from the specified scene IDs", err=True)
+            raise typer.Exit(1)
+        
+        scenes = filtered_scenes
+        typer.echo(f"Selected specific scenes: {', '.join(s['id'] for s in scenes)}")
+        
+    elif max_scenes:
+        # Limit to first N scenes
+        scenes = all_scenes[:max_scenes]
         typer.echo(f"Limited to first {max_scenes} scenes")
+    else:
+        # Use all scenes
+        scenes = all_scenes
     
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
