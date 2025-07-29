@@ -46,6 +46,203 @@ def check_existing_clip(scene_id: str, output_dir: str) -> Optional[str]:
     
     return None
 
+def optimize_scene_combinations(scenes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Combine short scenes together to maximize 8-second clip usage and reduce costs."""
+    optimized_scenes = []
+    current_group = []
+    current_duration = 0.0
+    max_duration = 7.5  # Leave 0.5s buffer
+    
+    typer.echo(f"\n🎯 Optimizing scene combinations...")
+    
+    for scene in scenes:
+        duration = scene['duration']
+        
+        # Skip already-chunked scenes (they're handled separately)
+        if scene.get('is_chunk'):
+            if current_group:
+                # Finalize current group before adding chunk
+                optimized_scenes.append(create_combined_scene(current_group))
+                current_group = []
+                current_duration = 0.0
+            optimized_scenes.append(scene)
+            continue
+        
+        # If scene is >8s, it needs chunking (handle separately)
+        if duration > 8.0:
+            if current_group:
+                # Finalize current group before long scene
+                optimized_scenes.append(create_combined_scene(current_group))
+                current_group = []
+                current_duration = 0.0
+            optimized_scenes.append(scene)
+            continue
+        
+        # Try to add scene to current group
+        if current_duration + duration <= max_duration:
+            current_group.append(scene)
+            current_duration += duration
+        else:
+            # Current group is full, finalize it and start new group
+            if current_group:
+                optimized_scenes.append(create_combined_scene(current_group))
+            current_group = [scene]
+            current_duration = duration
+    
+    # Finalize any remaining group
+    if current_group:
+        optimized_scenes.append(create_combined_scene(current_group))
+    
+    # Show optimization results
+    original_clips = len(scenes)
+    optimized_clips = len(optimized_scenes)
+    savings = (original_clips - optimized_clips) * 6.0  # Assume $6 per clip
+    
+    typer.echo(f"   Original: {original_clips} clips → Optimized: {optimized_clips} clips")
+    typer.echo(f"   Estimated savings: ${savings:.2f}")
+    
+    return optimized_scenes
+
+def create_combined_scene(scenes: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Create a combined scene from multiple short scenes."""
+    if len(scenes) == 1:
+        return scenes[0]  # No combination needed
+    
+    # Create combined scene metadata
+    combined_id = "_".join([s['id'] for s in scenes])
+    total_duration = sum(s['duration'] for s in scenes)
+    start_time = scenes[0]['start_time']
+    end_time = scenes[-1]['end_time']
+    
+    # Combine scene prompts
+    combined_prompt = create_multi_scene_prompt(scenes)
+    
+    combined_scene = {
+        'id': f"combined_{combined_id}",
+        'original_scenes': [s['id'] for s in scenes],
+        'scene_count': len(scenes),
+        'start_time': start_time,
+        'end_time': end_time,
+        'start_seconds': scenes[0]['start_seconds'],
+        'end_seconds': scenes[-1]['end_seconds'],
+        'duration': total_duration,
+        'is_combined': True,
+        'scene_prompt': combined_prompt,
+        'cinematic_notes': combine_cinematic_notes(scenes),
+        'individual_scenes': scenes,  # Store original scenes for splitting later
+        'diagnostics': {
+            'text_heavy': any(s.get('diagnostics', {}).get('text_heavy', False) for s in scenes),
+            'camera_motion': True,  # Multi-scene will have motion
+            'complex_characters': any(s.get('diagnostics', {}).get('complex_characters', False) for s in scenes),
+            'rapid_motion': True,  # Scene transitions create rapid motion
+            'duration_warning': False  # Combined scenes are <8s
+        }
+    }
+    
+    typer.echo(f"   Combined {len(scenes)} scenes: {', '.join([s['id'] for s in scenes])} → {combined_scene['id']} ({total_duration:.1f}s)")
+    
+    return combined_scene
+
+def create_multi_scene_prompt(scenes: List[Dict[str, Any]]) -> str:
+    """Create a combined prompt for multiple sequential scenes."""
+    scene_descriptions = []
+    
+    for i, scene in enumerate(scenes):
+        duration = scene['duration']
+        prompt = scene.get('scene_prompt', scene.get('prompt', ''))
+        dialogue = scene.get('dialogue', '')
+        
+        timing = f"[{duration:.1f}s]"
+        scene_desc = f"Scene {i+1} {timing}: {prompt[:200]}..."
+        if dialogue:
+            scene_desc += f" Dialogue: \"{dialogue}\""
+        scene_descriptions.append(scene_desc)
+    
+    total_duration = sum(s['duration'] for s in scenes)
+    
+    combined_prompt = f"""MULTI-SCENE SEQUENCE - {total_duration:.1f} seconds total
+
+This is a continuous sequence combining {len(scenes)} sequential scenes with smooth transitions:
+
+{chr(10).join(scene_descriptions)}
+
+TRANSITION REQUIREMENTS:
+- Seamless flow between scenes with natural camera movements
+- Maintain visual continuity in lighting and color palette
+- Characters should move naturally between scenes
+- Audio/dialogue should flow naturally across scene boundaries
+- Each scene transition should feel cinematic, not abrupt
+
+Create a cohesive {total_duration:.1f}-second sequence that captures all these moments as one continuous shot."""
+    
+    return combined_prompt
+
+def combine_cinematic_notes(scenes: List[Dict[str, Any]]) -> str:
+    """Combine cinematic notes from multiple scenes."""
+    notes = []
+    for scene in scenes:
+        if scene.get('cinematic_notes'):
+            notes.append(f"{scene['id']}: {scene['cinematic_notes'][:100]}...")
+    
+    return "Combined scenes: " + " | ".join(notes) if notes else "Multi-scene sequence with smooth transitions"
+
+def split_combined_clip(combined_scene: Dict[str, Any], clip_path: str, output_dir: str) -> List[Dict[str, Any]]:
+    """Split a combined clip back into individual scene clips."""
+    if not combined_scene.get('is_combined'):
+        return []  # Not a combined scene
+    
+    individual_scenes = combined_scene.get('individual_scenes', [])
+    if not individual_scenes:
+        return []
+    
+    results = []
+    current_offset = 0.0
+    
+    try:
+        import ffmpeg
+        
+        for scene in individual_scenes:
+            scene_duration = scene['duration']
+            output_path = os.path.join(output_dir, f"{scene['id']}.mp4")
+            
+            # Extract segment from combined clip
+            (
+                ffmpeg
+                .input(clip_path, ss=current_offset, t=scene_duration)
+                .output(output_path, vcodec='libx264', acodec='aac')
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True, quiet=True)
+            )
+            
+            if os.path.exists(output_path):
+                results.append({
+                    'scene_id': scene['id'],
+                    'output_path': output_path,
+                    'success': True,
+                    'duration': scene_duration,
+                    'source': 'split_from_combined'
+                })
+                typer.echo(f"   Split → {scene['id']}.mp4 ({scene_duration:.1f}s)")
+            else:
+                results.append({
+                    'scene_id': scene['id'],
+                    'success': False,
+                    'error': 'Failed to split segment'
+                })
+            
+            current_offset += scene_duration
+        
+    except Exception as e:
+        typer.echo(f"Error splitting combined clip: {e}", err=True)
+        for scene in individual_scenes:
+            results.append({
+                'scene_id': scene['id'],
+                'success': False,
+                'error': f'Split failed: {str(e)}'
+            })
+    
+    return results
+
 def stitch_scene_chunks(chunk_paths: List[str], output_path: str, overlap_duration: float = 1.0) -> bool:
     """Stitch multiple scene chunks together with crossfade transitions."""
     try:
@@ -86,7 +283,7 @@ def stitch_scene_chunks(chunk_paths: List[str], output_path: str, overlap_durati
         typer.echo(f"Error stitching chunks: {e}", err=True)
         return False
 
-def submit_veo3_request(prompt: str, duration: float, max_retries: int = 3) -> Dict[str, Any]:
+def submit_veo3_request(prompt: str, duration: float, use_fast: bool = False, max_retries: int = 3) -> Dict[str, Any]:
     """Submit generation request to Veo3 via fal.ai with retry logic."""
     headers = get_fal_headers()
     
@@ -115,8 +312,11 @@ def submit_veo3_request(prompt: str, duration: float, max_retries: int = 3) -> D
                 typer.echo(f"   Retry {attempt}/{max_retries - 1}...")
                 time.sleep(5 * attempt)  # Exponential backoff
             
+            # Choose endpoint based on fast flag
+            endpoint = f"{FAL_API_BASE}/fast" if use_fast else FAL_API_BASE
+            
             response = requests.post(
-                FAL_API_BASE,
+                endpoint,
                 headers=headers,
                 json=payload,
                 timeout=180  # Increased to 3 minutes
@@ -207,7 +407,7 @@ def download_generated_video(video_url: str, output_path: str) -> bool:
         typer.echo(f"Error downloading video: {e}", err=True)
         return False
 
-def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing: bool = True) -> Dict[str, Any]:
+def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing: bool = True, use_fast: bool = False) -> Dict[str, Any]:
     """Generate a single scene clip."""
     scene_id = scene['id']
     output_path = os.path.join(output_dir, f"{scene_id}.mp4")
@@ -235,7 +435,7 @@ def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing:
     typer.echo(f"🎬 Generating {scene_id} (8s - fixed by API)...")
     
     # Submit generation request (duration parameter is ignored since API only accepts 8s)
-    result = submit_veo3_request(prompt, 8.0, max_retries=2)  # Reduced retries to save money
+    result = submit_veo3_request(prompt, 8.0, use_fast, max_retries=2)  # Pass fast flag
     
     if "error" in result:
         return {
@@ -324,7 +524,8 @@ def generate_command(
     skip_existing: bool = typer.Option(True, "--skip-existing/--overwrite", help="Skip existing clips"),
     max_scenes: Optional[int] = typer.Option(None, "--max-scenes", help="Limit number of scenes to generate"),
     scenes: Optional[str] = typer.Option(None, "--scenes", help="Specific scene IDs to generate (comma-separated, e.g., 'scene_01,scene_03,scene_05')"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be generated without actually doing it")
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be generated without actually doing it"),
+    fast: bool = typer.Option(False, "--fast", help="Use Veo3 Fast model (cheaper: $0.40/s vs $0.75/s)")
 ):
     """Generate video clips from scene prompts using Veo3."""
     
@@ -373,17 +574,26 @@ def generate_command(
         # Use all scenes
         scenes = all_scenes
     
+    # Optimize scene combinations to reduce costs
+    scenes = optimize_scene_combinations(scenes)
+    
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
-    # Show generation plan - all clips will be 8 seconds due to API limitation
-    total_duration = len(scenes) * 8.0  # All clips are 8 seconds
-    estimated_cost = total_duration * 0.10  # $0.10 per second estimate
+    # Show generation plan - calculate actual costs
+    total_duration = len(scenes) * 8.0  # All clips are 8 seconds (API fixed)
+    # fal.ai Veo3 pricing: $0.75/second with audio (standard), $0.40/second (fast)
+    cost_per_second = 0.40 if fast else 0.75  # Choose model based on --fast flag
+    model_name = "Veo3 Fast" if fast else "Standard Veo3"
+    estimated_cost = total_duration * cost_per_second
     
     typer.echo(f"\n🎬 Generation Plan:")
     typer.echo(f"Scenes to generate: {len(scenes)}")
-    typer.echo(f"Total duration: {total_duration:.1f}s (all clips will be 8s due to Veo3 API)")
-    typer.echo(f"Estimated cost: ${estimated_cost:.2f}")
+    typer.echo(f"Total duration: {total_duration:.1f}s (all clips are 8s - API fixed)")
+    typer.echo(f"Estimated cost: ${estimated_cost:.2f} (${cost_per_second:.2f}/second with audio)")
+    typer.echo(f"Model: {model_name}")
+    if not fast:
+        typer.echo(f"💡 Tip: Use --fast flag for cheaper generation (${0.40:.2f}/s vs ${0.75:.2f}/s)")
     typer.echo(f"Output directory: {output_dir}")
     
     if dry_run:
@@ -416,9 +626,15 @@ def generate_command(
     for i, scene in enumerate(scenes, 1):
         typer.echo(f"\n[{i}/{len(scenes)}] Processing {scene['id']}...")
         
-        result = generate_single_scene(scene, output_dir, skip_existing)
+        result = generate_single_scene(scene, output_dir, skip_existing, fast)
         results.append(result)
         total_cost += result.get('cost', 0)
+        
+        # If this was a combined scene, split it back into individual clips
+        if scene.get('is_combined') and result.get('success') and result.get('output_path'):
+            typer.echo(f"🔗 Splitting combined clip into {scene['scene_count']} individual scenes...")
+            split_results = split_combined_clip(scene, result['output_path'], output_dir)
+            results.extend(split_results)
     
     # Auto-stitch chunks for scenes that were split
     typer.echo(f"\n🎬 Checking for scenes to stitch...")

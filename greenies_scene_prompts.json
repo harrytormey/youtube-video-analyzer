@@ -1,0 +1,301 @@
+{
+  "video_path": "input.mp4",
+  "detection_threshold": 0.4,
+  "total_scenes": 15,
+  "total_duration": 34.600234,
+  "cost_estimate": {
+    "claude_tokens": 11200,
+    "claude_cost_usd": 0.0336,
+    "total_duration_seconds": 33.600234,
+    "estimated_veo3_cost_usd": 3.3600234,
+    "total_estimated_cost_usd": 3.3936234
+  },
+  "scenes": [
+    {
+      "id": "scene_01",
+      "start_time": "00:00:00.000",
+      "end_time": "00:00:01.001",
+      "start_seconds": 0.0,
+      "end_seconds": 1.001,
+      "duration": 1.001,
+      "description": "A serene high-angle shot of a rocky coastal landscape at sunset, with dramatic waves crashing against ancient volcanic rock formations. The scene captures the raw power of nature as ocean spray erupts upward against the darkening sky.",
+      "scene_prompt": "VOLCANIC COASTLINE - SUNSET (Dramatic Natural Elements)\n\n[Beginning] From a sweeping aerial position, the camera hovers high above jagged volcanic rocks where powerful ocean waves collide with ancient stone formations. The sky burns with deep amber and violet hues as the sun descends toward the horizon. White foam churns violently around the base of the dark, weathered rocks.\n\nThe camera maintains a stable hovering position as massive waves roll in from screen left, building momentum before crashing spectacularly against the volcanic outcropping. Ocean spray explodes upward in a majestic display of natural force, catching the golden light of sunset and creating ephemeral prisms in the mist.\n\n[Middle] Layers of motion unfold simultaneously - the underlying steady churn of whitecaps around the rocks, the dramatic wave impact sending spray skyward, and the gentle settling of water droplets back to the turbulent surface. The camera remains fixed, allowing the raw power of the ocean to dominate the frame.\n\n[End] As the wave impact dissipates, the water draws back momentarily, revealing the slick, obsidian-like surface of the rocks before the next wave begins to build. The scene maintains perfect composition with the rocky formation positioned in the lower third, framed against the rich sunset sky.\n\nThroughout the scene, natural lighting bathes everything in warm amber tones, with deep shadows in the rock crevices creating stark contrast against the illuminated spray. The mood is one of raw, untamed natural power meeting serene coastal beauty.",
+      "cinematic_notes": "Camera: Static aerial shot from approximately 50 feet elevation, using a wide-angle lens to capture the full scope of the wave impacts and surrounding coastline. The fixed position emphasizes the dynamic motion within the frame rather than adding camera movement.\n\nLighting: Natural magic hour illumination with strong directional light from the setting sun creating rim lighting on the wave spray and deep shadows in the rock formations. Color temperature shifts from warm amber highlights to cool blue shadows.\n\nComposition: Rule of thirds placement of the rock formation, with negative space in the sky balanced against the dynamic water motion below. The frame maintains headroom above the wave spray for visual breathing room.",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": false,
+        "rapid_motion": true,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_02",
+      "start_time": "00:00:01.001",
+      "end_time": "00:00:04.004",
+      "start_seconds": 1.001,
+      "end_seconds": 4.004,
+      "duration": 3.0029999999999997,
+      "description": "A sophisticated animated logo reveal for The Wall Street Journal, transitioning from scattered abstract bokeh lights to the iconic masthead. The sequence creates a sense of ethereal emergence through choreographed light elements coalescing into typography.",
+      "scene_prompt": "CORPORATE HEADQUARTERS - NIGHT (Elegant Animation Sequence)\n\n[Beginning] Against a rich charcoal grey background, scattered square bokeh lights hover in space at varying depths and intensities. The bright white light elements range from crisp squares to soft-edged orbs, creating a three-dimensional field of floating illumination. Each light element has a subtle gaussian blur that gives it a ethereal, ghostly quality.\n\nThe camera holds steady as the bokeh lights begin a graceful, coordinated drift. The scattered points of light initiate a slow, purposeful convergence, drawn together by an unseen force. Their movement creates elegant arcing paths through the dark space, leaving subtle motion trails.\n\n[Middle] As the lights continue their choreographed migration, they begin taking on more defined geometric shapes - transforming from organic bokeh into precise squares and rectangles. The background maintains its deep charcoal tone while the drifting elements maintain their bright white luminescence.\n\n[End] In a final coordinated motion, the floating light elements align and solidify into the iconic Wall Street Journal logotype. The letters emerge with crystalline clarity in bright white against the dark background, perfectly centered in frame. The masthead radiates authority through its classic serif typeface, filling the width of frame with dignified presence. The transformation completes as the typography achieves perfect clarity and stability.\n\nThroughout the scene, the lighting maintains a high contrast ratio between the pure white elements and rich dark background. The movement has a smooth, liquid quality that suggests digital precision while maintaining organic grace.",
+      "cinematic_notes": "Shot on virtual camera with subtle depth of field on the bokeh elements. Clean, high contrast aesthetic with pure white light elements against deep charcoal grey background. Smooth motion curves for light element animation. Typography reveals through coordinated particle animation rather than traditional fade. Composition maintains center framing throughout sequence.",
+      "diagnostics": {
+        "text_heavy": true,
+        "camera_motion": false,
+        "complex_characters": false,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_03_chunk_01",
+      "parent_scene_id": "scene_03",
+      "chunk_number": 1,
+      "total_chunks": 2,
+      "start_time": "00:00:04.004",
+      "end_time": "00:00:11.004",
+      "start_seconds": 4.004,
+      "end_seconds": 11.004,
+      "duration": 7.0,
+      "original_duration": 15.248567,
+      "is_chunk": true,
+      "dialogue": "Oh, this is tragic, man. Investors just like you could lose tens of thousands of dollars on their 401k to hidden fees.",
+      "overlap_with_previous": 0,
+      "overlap_with_next": 1.0,
+      "description": "A staged scene showing a toddler in a nursery, positioned at a miniature desk next to an exaggerated pile of cash stacks, creating a humorous juxtaposition while discussing 401k investment fees. The scene maintains a fixed camera position with subtle motion from the child's natural movements.",
+      "scene_prompt": "NURSERY - DAY (Soft Natural Light)\n\nA brightly lit nursery room with white walls and neutral-toned wooden furniture sets the stage. A wooden crib stands in the background, while a white 4-drawer dresser anchors the left side of the frame. A small wooden child's desk occupies the center foreground.\n\nThe scene opens with a toddler seated at the miniature desk, wearing a crisp white t-shirt. To their right, an expertly arranged pile of prop money stacks creates a dramatic visual metaphor. The stacks are neatly bundled with red straps, forming a substantial pyramid of cash. A computer keyboard rests on the desk's surface.\n\nAs the dialogue begins with \"Oh, this is tragic, man,\" the child maintains a natural, slightly fidgeting posture typical of their age. The lighting remains consistent - soft, diffused daylight filtering through unseen windows, creating gentle shadows and maintaining the professional yet approachable atmosphere of the setup.\n\nThe camera holds a steady medium shot throughout, positioned at a slight elevation to capture both the child and money pile in perfect composition. The frame is meticulously balanced, with the white dresser providing visual weight on the left while the money stack counterbalances on the right.\n\nThroughout the 7-second sequence, the child exhibits subtle, natural movements while remaining seated at the desk. The money pile and furniture remain static, serving as anchoring elements in the composition. The dialogue about 401k fees continues over these subtle movements, creating an intentionally humorous contrast between the serious financial topic and the toddler presenter.",
+      "cinematic_notes": "Camera: Fixed position medium shot using a 35mm lens for natural perspective. Height positioned just above child's eye level.\nLighting: Key light from camera-left (presumably window) with soft fill from room bounce. Color temperature approximately 5600K for clean daylight look.\nComposition: Rule of thirds applied with child positioned left-center and money pile balancing right third.\nColor grade: Natural and clean with slightly lifted blacks for commercial appeal.\nProduction design: Carefully curated nursery setting with neutral colors and intentionally positioned props.",
+      "diagnostics": {
+        "text_heavy": true,
+        "camera_motion": false,
+        "complex_characters": false,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_03_chunk_02",
+      "parent_scene_id": "scene_03",
+      "chunk_number": 2,
+      "total_chunks": 2,
+      "start_time": "00:00:10.004",
+      "end_time": "00:00:19.253",
+      "start_seconds": 10.004,
+      "end_seconds": 19.252567,
+      "duration": 9.248567,
+      "original_duration": 15.248567,
+      "is_chunk": true,
+      "dialogue": "Thankfully, E-Trade has low cost investments and no hidden fees. But, you know, if you're still bent on blowing this fat stack of cash, there's a couple ways you could do it.",
+      "overlap_with_previous": 1.0,
+      "overlap_with_next": 1.0,
+      "description": "A toddler in a high chair sits beside a large stack of money bundles while an offscreen narrator delivers financial advice in a humorous contrast between responsible investing and frivolous spending.",
+      "scene_prompt": "NURSERY - DAY (Soft Natural Lighting)        The scene opens in a modern nursery with white furniture and neutral tones. A wooden high chair is positioned at frame center, with a white dresser to the left and a wooden crib visible in the background. Natural daylight filters through off-screen windows, creating a soft, warm ambiance.    At frame left, seated in the wooden high chair is a toddler wearing a crisp white t-shirt, their hands clasped on the tray. To their right sits an impressively large stack of bound cash bundles, meticulously arranged in a pyramid formation. A computer keyboard rests on the surface before them.    The camera maintains a steady, front-facing medium shot throughout the sequence. The composition creates a deliberate juxtaposition between the innocent nursery setting and the substantial display of wealth. The toddler's natural, slight movements provide subtle animation while maintaining the staged quality of the scene.    The voiceover begins: 'Thankfully, E-Trade has low cost investments and no hidden fees.' The delivery is measured and professional, then shifts to a more playful tone: 'But, you know, if you're still bent on blowing this fat stack of cash, there's a couple ways you could do it.'    Throughout the sequence, the lighting remains consistent - soft daylight creating gentle shadows and maintaining the clean, contemporary feel of the nursery setting. The color palette stays within warm neutrals, with the white furniture and clothing providing bright accents against the beige walls.",
+      "cinematic_notes": "Shot on a static camera with a medium-wide lens, approximately 35mm, to capture both subject and money stack while maintaining natural perspective. Lighting appears to use natural daylight supplemented with soft fill to maintain detail in shadows. The composition follows the rule of thirds, with the toddler positioned left of center and the money stack balancing the right third. Minimal depth of field keeps both subject and props in clear focus. Color grade maintains natural skin tones while slightly desaturating the background for a clean, commercial aesthetic.",
+      "diagnostics": {
+        "text_heavy": true,
+        "camera_motion": false,
+        "complex_characters": false,
+        "rapid_motion": false,
+        "duration_warning": true
+      }
+    },
+    {
+      "id": "scene_05",
+      "start_time": "00:00:19.319",
+      "end_time": "00:00:20.487",
+      "start_seconds": 19.3193,
+      "end_seconds": 20.487133,
+      "duration": 1.1678330000000017,
+      "description": "A whimsical commercial scene featuring a dressed-up child raising a champagne glass in celebration next to an elaborate milkshake in a luxurious red lounge setting",
+      "scene_prompt": "UPSCALE LOUNGE - EVENING (Stylized Commercial Lighting)\n\n[Beginning] In a plush red leather booth bathed in dramatic crimson lighting, we open on an intimate table scene. A milkshake glass adorned with whipped cream and festive decorations sits prominently on a polished red circular table.\n\nThe camera holds steady as a small figure in formal evening attire, complete with bow tie and stylish sunglasses perched atop their head, emerges from the shadows of the booth. Their movement is deliberate and playful as they raise a champagne flute filled with what appears to be milk or a light-colored beverage.\n\n[Middle] The lighting creates a sophisticated ambiance with bokeh effects dancing in the dark background. The red leather upholstery gleams with carefully placed highlights, while shadows add depth to the booth's curves. The milkshake stands as a hero product, its whipped cream and garnishes perfectly styled and illuminated.\n\n[End] The sequence concludes with the raised glass held triumphantly aloft, capturing the essence of celebration and luxury in this stylized commercial moment. The bokeh effects in the background twinkle like stars, completing the high-end atmosphere.\n\nThroughout the scene, professional commercial lighting techniques create a rich, warm environment with precise accent highlights on glassware and surfaces. The color palette is dominated by deep reds and warm tones, with strategic rim lighting defining edges and forms.",
+      "cinematic_notes": "Shot on high-end digital cinema camera with shallow depth of field. Lighting employs multiple carefully positioned sources to create depth and dimension. Key light provides warm glow while edge lights separate subject from background. Background bokeh achieved with wide aperture lens. Color grade emphasizes rich reds while maintaining natural skin tones. Static camera mounted on tripod for commercial-style stability.",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": true,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_06",
+      "start_time": "00:00:20.487",
+      "end_time": "00:00:21.488",
+      "start_seconds": 20.487133,
+      "end_seconds": 21.488133,
+      "duration": 1.0010000000000012,
+      "description": "Three polo players on horseback in mid-game action, with the center rider demonstrating exceptional form while hitting the ball. The sequence captures the grace and intensity of professional polo play.",
+      "scene_prompt": "PRIVATE POLO GROUNDS - LATE AFTERNOON (Golden Hour, Professional Match)[Beginning] On the manicured grass field bathed in warm late-day sunlight, three mounted polo players converge on a white ball. The center rider, wearing a white jersey, maintains perfect form as they lean forward in the saddle. Their chestnut polo pony strides powerfully forward, muscles rippling.[Middle] As the center horse maintains its gallop, the rider extends their mallet in a precise downward arc toward the ball. The flanking players, one in red and one in white/teal, angle their mounts slightly outward to create space. Their mallets remain raised, ready but not interfering. All three horses' hooves barely touch the grass, caught in that suspended moment of full gallop.[End] The sequence culminates with all three riders in perfect triangular formation - the geometry of their positioning highlighting years of professional training. The horses' tack gleams in the golden light, while shadows stretch long across the verdant polo field. A 'Professional Stunts' warning subtly appears at the bottom of frame.Throughout the scene, the low-angle camera position emphasizes the power and grace of the horses while capturing the technical precision of the riders. Natural backlighting creates a subtle halo effect around the figures, with the tree-lined background falling into soft focus.",
+      "cinematic_notes": "Camera: Low-angle static shot, likely 200mm telephoto lens to compress perspective and isolate subjects against background. Natural lighting leverages golden hour glow for dramatic rim lighting on horses and riders. Color grade emphasizes warm tones while maintaining natural skin tones and grass color. Rule of thirds composition with center rider as focal point.",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": true,
+        "rapid_motion": true,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_07",
+      "start_time": "00:00:21.488",
+      "end_time": "00:00:22.589",
+      "start_seconds": 21.488133,
+      "end_seconds": 22.589233,
+      "duration": 1.1010999999999989,
+      "description": "A stylized commercial scene focused on a toddler in a group dance or movement sequence, featuring dynamic motion and professional lighting characteristic of high-end advertising production",
+      "scene_prompt": "MODERN DANCE STUDIO - DAY (Bright, airy, minimalist aesthetic)\n\n[Beginning] In a pristine white studio space marked with a large '6' on the wall, soft natural light streams through unseen windows. The camera holds a medium close-up frame as a toddler in a crisp white t-shirt begins raising their arms in synchronized motion with others around them.\n\n[Middle] The camera maintains perfect focus on the toddler as they execute the arm-raising choreography with innocent concentration. Professional beauty lighting creates a soft glow on their face while maintaining dimensionality. Background figures move in coordinated motion but remain intentionally defocused.\n\n[End] The sequence culminates with arms reaching their apex position overhead, the toddler's expression remaining charmingly natural and unstudied throughout the fluid movement. The shallow depth of field keeps attention firmly on the central figure while suggesting the group dynamic through elegant bokeh.\n\nThroughout the scene, commercial-grade lighting maintains perfect exposure and skin tones while the professional camera work demonstrates masterful focus control and framing. The overall aesthetic is clean, bright and aspirational - fitting for high-end brand advertising.",
+      "cinematic_notes": "Shot on high-end digital cinema camera with premium portrait lens (likely 85mm or longer) at wide aperture for shallow depth of field. Camera position is locked off on tripod with subtle stabilization. Key light appears to be large soft source from 45 degrees camera right with wraparound fill. Color temperature is neutral to slightly warm. Grade has lifted blacks for commercial appeal while preserving natural skin rendering.",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": true,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_09",
+      "start_time": "00:00:22.656",
+      "end_time": "00:00:23.724",
+      "start_seconds": 22.655967,
+      "end_seconds": 23.7237,
+      "duration": 1.0677330000000005,
+      "description": "A formal portrait in an ornate gold frame dissolves and materializes with a dreamlike quality. The lighting shifts subtly from shadows to a warm, focused illumination on a young child in Napoleonic-era military dress uniform against a dark background.",
+      "scene_prompt": "ROYAL PORTRAIT GALLERY - TIMELESS MOMENT[Beginning] Within an elaborate baroque gold frame adorned with intricate carved details and flourishes, darkness gives way to a ethereal emergence. The frame itself seems to glow with a warm amber luminescence, its ornate edges catching the light.[Middle] A formal portrait materializes with painterly precision - a young child wearing a pristine white and black military dress uniform with gold epaulettes and decorative medals positioned against a rich burgundy background. The high-contrast lighting sculpts the features with Renaissance mastery - Rembrandt-style illumination casting dramatic shadows while highlighting the stark white of the uniform. The pose is formal and dignified, befitting royal portraiture.[End] The portrait achieves full clarity as the lighting settles into perfect balance. The gold frame's elaborate carved details frame the composition with a sense of historical gravity and importance. The dark background recedes, focusing all attention on the carefully posed subject in ceremonial military dress.Throughout the scene, the lighting maintains a painterly quality reminiscent of classical portraiture, with deep shadows and selective highlights creating a three-dimensional sculptural effect. The color palette remains rich but restrained - deep burgundies, bright whites, and gleaming gold accents.",
+      "cinematic_notes": "Camera remains locked in a formal portrait framing, allowing the lighting and dissolve effects to create the motion. Shot with a portrait lens to minimize distortion. Lighting progression moves from atmospheric shadows to precise illumination typical of formal oil paintings. Color grading emphasizes rich, painterly tones while maintaining photographic clarity. The ornate frame serves as a natural vignette drawing focus to the center composition.",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": true,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_10",
+      "start_time": "00:00:23.724",
+      "end_time": "00:00:24.858",
+      "start_seconds": 23.7237,
+      "end_seconds": 24.858167,
+      "duration": 1.1344670000000008,
+      "description": "A chaotic, adrenaline-fueled moment during the Running of the Bulls in Pamplona, Spain, as a participant in white clothing carrying a small child in a baby carrier frantically moves through a cobblestone street while bulls charge behind them. The scene captures the raw intensity and danger of the famous festival.",
+      "scene_prompt": "PAMPLONA STREETS - EARLY MORNING (Running of the Bulls Festival)[Beginning] On ancient cobblestones slick with morning dew, a participant in traditional white clothing and red kerchief moves urgently through the narrow medieval street, carrying a small child secured in a black baby carrier. The massive brown bull enters frame right, its horns gleaming.The handheld camera tracks laterally, maintaining a medium-wide shot as the runner scrambles sideways, one hand protectively steadying the baby carrier while the other reaches down to gather scattered newspapers from the ground. Behind them, the 1,500-pound bull's hooves clatter on the stones as it advances.[Middle] The camera subtly pushes in as the runner crouches lower, creating a defensive posture while maintaining balance. The child's sun hat bobs with each movement. Morning light catches the bull's muscled flanks as it closes the distance, horns aimed forward. Scattered festival-goers in striped shirts blur past in the background.[End] The sequence concludes with the bull passing dangerously close on the right side of frame while the runner presses against the ancient stone wall. The camera holds steady on this heart-stopping moment as morning shadows from overhead balconies create dramatic bands across the scene.Throughout, natural morning light streams between buildings, casting long shadows across the cobblestones while creating rim lighting on the bull's impressive form. The handheld camerawork maintains documentary-style urgency while never losing focus on the central action.",
+      "cinematic_notes": "Shot handheld on wide lens (24mm) to capture both intimate human drama and environmental scope. Natural morning lighting with strong directional quality. Camera maintains slightly low angle to emphasize bull's imposing presence. Muted color grading emphasizes whites, browns and shadow detail. Subtle push-in during middle heightens tension.",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": true,
+        "complex_characters": true,
+        "rapid_motion": true,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_12",
+      "start_time": "00:00:24.992",
+      "end_time": "00:00:25.859",
+      "start_seconds": 24.991633,
+      "end_seconds": 25.859167,
+      "duration": 0.8675339999999991,
+      "description": "A playful and surreal scene aboard the International Space Station showing a split composition of a cosmonaut and a dog wearing space suits, both floating in zero gravity against the backdrop of Earth visible through the window. The scene creates a whimsical juxtaposition between human and canine space explorers.",
+      "scene_prompt": "INT. INTERNATIONAL SPACE STATION - EARTH ORBIT (WEIGHTLESS ENVIRONMENT)The scene opens in the confined metallic interior of the ISS, illuminated by both harsh fluorescent lighting and the ethereal blue glow from Earth visible through the rectangular window. A space-suited figure and a brown dog, both wearing protective helmets that create perfect circular frames around their faces, float suspended in zero gravity.The camera is locked in a static medium shot, capturing both subjects in perfect symmetrical composition. On the left, we see the astronaut oriented upside-down, creating a surreal visual as they float effortlessly in the weightless environment. Their white space suit reflects the metallic interior lighting. On the right, a brown dog wearing a matching space suit maintains a level orientation, its expressive eyes and distinctive face framed perfectly within the circular helmet visor.Behind them, through the station's window, we see the vibrant blue curve of Earth against the blackness of space, with wispy white cloud formations visible across its surface. The window's frame creates a natural third compositional element, balancing the two helmeted figures.The lighting remains consistent throughout - a mix of cool institutional lighting from above and the natural glow of Earth reflection, creating depth through subtle shadows within the helmet visors and space suit contours. The metallic interior surfaces of the ISS provide subtle reflections and highlights.",
+      "cinematic_notes": "Camera: Static medium shot with symmetrical split compositionLens: Wide angle lens (24-35mm) to capture both subjects and environmentLighting: Mixed sources - overhead fluorescent interior lights and natural Earth glow through windowColor grade: High contrast with emphasis on whites of the suits and deep blacks of spaceKey compositional elements: Circular helmet visors frame faces, rectangular window frames EarthProduction design: Authentic ISS interior with control panels and equipment visible in background",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": true,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_14",
+      "start_time": "00:00:25.993",
+      "end_time": "00:00:26.994",
+      "start_seconds": 25.992633,
+      "end_seconds": 26.993633,
+      "duration": 1.0009999999999977,
+      "description": "A surreal scene in an infinity pool at sunset, where a giant panda shares the water with a small child. The ocean stretches to the horizon behind them as warm golden light bathes the scene. The composition creates a dreamlike, whimsical moment that plays with scale and reality.",
+      "scene_prompt": "OCEANFRONT INFINITY POOL - SUNSET (Magical Realism)[Beginning] An infinity pool stretches toward the ocean horizon, its dark blue waters reflecting the golden-peach sunset sky. Waves crash against rocks in the distance as sea spray catches the dying light. Through the steam rising from the heated pool, we see a young child floating peacefully in the water. Adjacent to them, a full-sized giant panda reclines casually against the pool's edge, its black and white fur glistening with moisture. The panda's massive form creates gentle ripples across the water's surface.[Middle] The camera holds steady in a wide shot that emphasizes the surreal size difference between the pool's occupants. The composition is perfectly balanced - the child on the left, the lounging panda on the right, with the infinite ocean as backdrop. Steam continues to drift upward, creating an ethereal atmosphere as the sunset paints everything in warm amber tones.[End] The peaceful moment hangs suspended in time as waves continue their rhythmic motion behind the pool's infinity edge. Light sparkles off the water's surface, creating diamond-like highlights that dance around both figures. The panda maintains its relaxed posture while small ripples from the child's movement radiate outward across the pool.Throughout the scene, natural lighting from the setting sun creates a dream-like golden hour ambiance. The ocean provides a constant ambient soundtrack of crashing waves, while the pool's surface reflects both the sky above and the incredible scene unfolding within its waters.",
+      "cinematic_notes": "Camera: Static wide shot with subtle driftLens: 35mm to capture full scene while maintaining intimacyLighting: Natural sunset backlighting creates rim lighting on subjectsColor grade: Warm golden tones emphasized, deep blues in waterComposition: Rule of thirds with subjects balanced left/rightMood: Peaceful, surreal, whimsical with underlying tranquility",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": true,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_15",
+      "start_time": "00:00:26.994",
+      "end_time": "00:00:28.095",
+      "start_seconds": 26.993633,
+      "end_seconds": 28.094733,
+      "duration": 1.1011000000000024,
+      "description": "A joyful split-screen scene contrasting an enthusiastic young sailor in captain's attire against a group enjoying themselves on a yacht deck, creating a playful juxtaposition of nautical themes",
+      "scene_prompt": "LUXURY YACHT - BRIGHT DAYLIGHT (Split Screen Composition)\n\n[Beginning] The scene opens with a dynamic split-screen composition. On the left, in extreme close-up, a laughing young figure wearing a crisp white sailor's uniform and decorated captain's hat with gold braiding and anchor insignia fills the frame against a soft-focused background. The genuine expression of pure joy creates an infectious energy.\n\nThe camera holds steady as the subject's natural laughter and animation continues, while simultaneously on the right side of the split screen, we see a wider establishing shot of a luxury yacht's wooden deck. Multiple figures in summer attire are visible lounging and socializing on the polished teak decking, with dramatic coastal mountains rising in the background. The yacht's sleek white hull and chrome fixtures gleam in the bright sunlight.\n\n[Middle] The split screen maintains its composition as the parallel moments unfold - the continued enthusiastic expression on the left contrasting with the relaxed vacation atmosphere on the right. Natural lighting bathes both scenes, with the bright daylight creating crisp shadows and highlights across the wooden deck and bringing out the details in the white naval uniform.\n\n[End] The sequence concludes with both scenes at their energetic peak - the joyful close-up reaching maximum expression while the yacht scene shows the group fully engaged in their leisure activities against the stunning coastal backdrop.\n\nThroughout the scene, natural lighting creates a bright, summery atmosphere. The split screen composition deliberately plays with scale and energy, contrasting intimate joy with broader social celebration in a nautical setting.",
+      "cinematic_notes": "Left frame uses intimate close-up with shallow depth of field, emphasizing emotional connection. Right frame employs wider establishing shot to capture full yacht scene. Natural lighting dominant in both frames with bright highlights and soft shadows. Split screen maintained consistently through sequence. Color temperature is warm and natural, emphasizing blues of water/sky and whites of yacht/uniform. Composition creates intentional thematic connection between separate moments.",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": true,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_17",
+      "start_time": "00:00:28.161",
+      "end_time": "00:00:29.263",
+      "start_seconds": 28.161467,
+      "end_seconds": 29.262567,
+      "duration": 1.1011000000000024,
+      "description": "A dramatic coastal scene featuring a small child wearing a captain's hat, gesturing with concern at a beached sailboat tilted on its side in the background. The composition creates a striking contrast between the innocent figure and the maritime disaster.",
+      "scene_prompt": "COASTAL BEACH - LATE AFTERNOON (Overcast with breaks of sun)[Beginning] A tranquil yet dramatic beachfront scene opens, centered on a tiny figure in a coral-colored life vest and crisp white captain's hat with naval insignia. Behind them, a white sailboat lies dramatically tilted, its masts angled against a cloudy blue sky. The camera holds steady at child-height.[Middle] The composition remains locked as subtle environmental motion occurs - gentle waves lapping at the boat's hull, wispy clouds drifting overhead, and the slight flutter of rigging lines in the breeze. The boat's pristine white hull contrasts sharply against the earthy beach tones. Natural lighting bathes the scene in soft, diffused illumination filtering through scattered clouds.[End] The sequence maintains its composed framing, allowing the jarring juxtaposition between the small maritime figure and the beached vessel to create narrative tension. The tilted masts pierce the sky at precise diagonals, their geometry leading the eye between the foreground figure and the stricken boat.Throughout the scene, the lighting remains consistently overcast yet luminous, with touches of late afternoon sun breaking through to create subtle highlights on the boat's hull and gentle shadows. The color palette is dominated by maritime blues, whites, and sandy beiges, with the coral vest providing a striking accent.",
+      "cinematic_notes": "Camera remains locked in a medium-wide shot at child height, around 3 feet elevation. Use a 35mm lens to capture both subject and boat while maintaining natural perspective. Subtle atmospheric haze enhances depth. Color grade emphasizes the contrast between cool sky tones and warm beach colors. Composition follows rule of thirds with boat masts creating strong diagonal leading lines.",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": true,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_18",
+      "start_time": "00:00:29.263",
+      "end_time": "00:00:31.398",
+      "start_seconds": 29.262567,
+      "end_seconds": 31.398033,
+      "duration": 2.135466000000001,
+      "description": "A humorous 2-second reaction sequence showing a toddler in a high chair reaching to grab stacks of money on a desk, transitioning from an upward contemplative gaze to an excited lunge forward. Set in a nursery with natural lighting and playful energy.",
+      "scene_prompt": "NURSERY - DAYTIME (Soft natural window lighting, playful mood)[Beginning] In a serene nursery setting with white furniture and muted grey walls, a toddler in a white t-shirt sits contained in a wooden high chair, gazing upward with wonder. A white dresser anchors the left side of the frame while a wooden crib stands in the background. On the desk before them, stacks of bound US dollar bills create an imposing mountain of cash. The camera holds steady at desktop height, capturing both the child's expression and the money pile in balanced composition.[Middle] The camera maintains its fixed position as anticipation builds. The toddler's body language shifts from contemplative to determined, their gaze lowering from upward wonderment to lock onto the pile of cash. Natural daylight streams in from the right, casting soft shadows and highlighting the crisp edges of the dollar stacks.[End] The sequence culminates as the toddler suddenly lunges forward in their high chair, small hands eagerly reaching toward the mountain of money. Their entire upper body strains forward while remaining safely secured in the chair. The swift movement creates subtle dynamic motion blur while the camera remains locked, emphasizing the child's animated reaction through contrast with the static frame.Throughout the scene, diffused natural lighting bathes the nursery in a clean, bright ambiance. The white furniture and neutral walls create a contemporary minimal aesthetic that makes the green of the dollar bills pop visually. The fixed camera position and lack of cuts allows the natural comedy of the toddler's progressive reaction to take center stage.",
+      "cinematic_notes": "Camera: Fixed position at desk height, likely 35mm lens for natural perspectiveLighting: Soft natural daylight from right side creates gentle modeling and shadowsColor: Clean white balance with slight warmth, allowing money's green to provide color accentComposition: Rule of thirds with toddler and money pile creating balanced visual weightMotion: Static frame emphasizes subject movement, no camera movement neededSound Design: Ambient room tone only, letting visuals carry comedic timing",
+      "diagnostics": {
+        "text_heavy": false,
+        "camera_motion": false,
+        "complex_characters": true,
+        "rapid_motion": true,
+        "duration_warning": false
+      }
+    },
+    {
+      "id": "scene_19",
+      "start_time": "00:00:31.398",
+      "end_time": "00:00:34.067",
+      "start_seconds": 31.398033,
+      "end_seconds": 34.067367,
+      "duration": 2.6693339999999957,
+      "description": "A minimalist corporate branding transition sequence for E*TRADE, featuring a sleek animated transformation of their logo and tagline against a deep purple backdrop. The sequence moves from a simple 'E' to 'T' line animation into their full brand lockup with tagline.",
+      "scene_prompt": "CORPORATE BRANDING - TIMELESS SPACE (Elegant Minimalism)\n\n[Beginning] Against a rich, deep purple gradient background that radiates from the center, we open on a pristine white 'E' positioned on the left side of frame. A thin white horizontal line extends from its base, stretching across the void. The lighting creates a subtle ambient glow around the letterform, with the purple background darkening at the edges.\n\nThe camera holds steady as the line draws itself horizontally across the frame with precise, measured motion, leading to a 'T' that materializes on the right edge. The motion is deliberate and controlled, taking exactly 1 second to traverse the space.\n\nAs the line completes its journey, the full E*TRADE logo smoothly fades into view in the center of the frame, its signature asterisk symbol glowing in lime green. The white text is crisp and pristine against the purple backdrop. The tagline 'LESS FOR US | MORE FOR YOU' appears beneath in a clean sans-serif font, perfectly centered.\n\n[End] The sequence resolves to hold on the complete brand lockup, with legal text smoothly fading in at the bottom and the WSJ Live watermark visible in the lower right corner. The purple gradient background maintains its subtle movement throughout, creating an atmosphere of sophistication and technical precision.",
+      "cinematic_notes": "Camera remains locked and stable throughout the sequence. Shot on virtual 35mm with a slight shallow depth of field on the text elements. The purple gradient background uses dynamic ray tracing to create subtle light movement. Text animations employ precise easing curves for smooth motion. Color grading emphasizes deep, rich purples while maintaining pristine white text. The green asterisk provides the only color accent. Composition follows the rule of thirds with centered final lockup.",
+      "diagnostics": {
+        "text_heavy": true,
+        "camera_motion": false,
+        "complex_characters": false,
+        "rapid_motion": false,
+        "duration_warning": false
+      }
+    }
+  ]
+}

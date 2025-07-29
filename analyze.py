@@ -503,24 +503,31 @@ Return ONLY valid JSON:
 
 def estimate_costs(scenes: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Estimate processing costs."""
-    # Rough estimates based on Claude pricing
-    tokens_per_scene = 800  # Estimated tokens for image + prompt + response
-    cost_per_1k_tokens = 0.003  # Claude 3.5 Sonnet pricing (approximate)
+    # Claude 3.5 Sonnet pricing for scene analysis
+    tokens_per_scene = 1200  # Higher estimate for detailed analysis with images
+    cost_per_1k_tokens = 0.003  # Claude 3.5 Sonnet pricing
     
     total_tokens = len(scenes) * tokens_per_scene
     claude_cost = (total_tokens / 1000) * cost_per_1k_tokens
     
-    # Veo3 cost estimation (placeholder - actual pricing varies)
-    total_duration = sum(scene['duration'] for scene in scenes)
-    veo3_cost_per_second = 0.10  # Estimated cost per second
-    veo3_cost = total_duration * veo3_cost_per_second
+    # Veo3 cost estimation - all clips are 8s regardless of original duration
+    total_clips = len(scenes)
+    clip_duration = 8.0  # Fixed by API
+    total_duration = total_clips * clip_duration
+    
+    # fal.ai Veo3 pricing: $0.75/second (standard) or $0.40/second (fast)
+    veo3_standard_cost = total_duration * 0.75
+    veo3_fast_cost = total_duration * 0.40
     
     return {
         'claude_tokens': total_tokens,
         'claude_cost_usd': claude_cost,
+        'total_clips': total_clips,
         'total_duration_seconds': total_duration,
-        'estimated_veo3_cost_usd': veo3_cost,
-        'total_estimated_cost_usd': claude_cost + veo3_cost
+        'veo3_standard_cost_usd': veo3_standard_cost,
+        'veo3_fast_cost_usd': veo3_fast_cost,
+        'total_estimated_standard_usd': claude_cost + veo3_standard_cost,
+        'total_estimated_fast_usd': claude_cost + veo3_fast_cost
     }
 
 def analyze_command(
@@ -546,11 +553,14 @@ def analyze_command(
     cost_estimate = estimate_costs(scenes)
     typer.echo(f"\n📊 Analysis Estimate:")
     typer.echo(f"Scenes detected: {len(scenes)}")
-    typer.echo(f"Total duration: {cost_estimate['total_duration_seconds']:.1f}s")
-    typer.echo(f"Estimated Claude tokens: {cost_estimate['claude_tokens']:,}")
-    typer.echo(f"Estimated Claude cost: ${cost_estimate['claude_cost_usd']:.3f}")
-    typer.echo(f"Estimated Veo3 cost: ${cost_estimate['estimated_veo3_cost_usd']:.2f}")
-    typer.echo(f"Total estimated cost: ${cost_estimate['total_estimated_cost_usd']:.2f}")
+    typer.echo(f"Video clips to generate: {cost_estimate['total_clips']}")
+    typer.echo(f"Total clip duration: {cost_estimate['total_duration_seconds']:.1f}s (8s per clip)")
+    typer.echo(f"Claude analysis cost: ${cost_estimate['claude_cost_usd']:.3f} ({cost_estimate['claude_tokens']:,} tokens)")
+    typer.echo(f"Veo3 Standard cost: ${cost_estimate['veo3_standard_cost_usd']:.2f} ($0.75/second)")
+    typer.echo(f"Veo3 Fast cost: ${cost_estimate['veo3_fast_cost_usd']:.2f} ($0.40/second)")
+    typer.echo(f"Total (Standard): ${cost_estimate['total_estimated_standard_usd']:.2f}")
+    typer.echo(f"Total (Fast): ${cost_estimate['total_estimated_fast_usd']:.2f}")
+    typer.echo(f"💡 Tip: Use --fast flag in generation to save ${cost_estimate['veo3_standard_cost_usd'] - cost_estimate['veo3_fast_cost_usd']:.2f}!")
     
     if estimate_only:
         return

@@ -97,10 +97,11 @@ def generate(
     skip_existing: bool = typer.Option(True, "--skip-existing/--overwrite", help="Skip existing clips"),
     max_scenes: Optional[int] = typer.Option(None, "--max-scenes", help="Limit number of scenes to generate"),
     scenes: Optional[str] = typer.Option(None, "--scenes", help="Specific scene IDs to generate (comma-separated, e.g., 'scene_01,scene_03,scene_05')"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be generated without actually doing it")
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be generated without actually doing it"),
+    fast: bool = typer.Option(False, "--fast", help="Use Veo3 Fast model (cheaper: $0.40/s vs $0.75/s)")
 ):
     """🎥 Generate video clips from scene prompts using Veo3 via fal.ai."""
-    generate_command(prompts=prompts, output_dir=output_dir, skip_existing=skip_existing, max_scenes=max_scenes, scenes=scenes, dry_run=dry_run)
+    generate_command(prompts=prompts, output_dir=output_dir, skip_existing=skip_existing, max_scenes=max_scenes, scenes=scenes, dry_run=dry_run, fast=fast)
 
 @app.command("stitch")
 def stitch(
