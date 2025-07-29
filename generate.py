@@ -46,8 +46,48 @@ def check_existing_clip(scene_id: str, output_dir: str) -> Optional[str]:
     
     return None
 
-def submit_veo3_request(prompt: str, duration: float) -> Dict[str, Any]:
-    """Submit generation request to Veo3 via fal.ai."""
+def stitch_scene_chunks(chunk_paths: List[str], output_path: str, overlap_duration: float = 1.0) -> bool:
+    """Stitch multiple scene chunks together with crossfade transitions."""
+    try:
+        import ffmpeg
+        
+        if len(chunk_paths) < 2:
+            return False
+        
+        # Build ffmpeg command for crossfade stitching
+        inputs = []
+        
+        # Load all input videos
+        for i, path in enumerate(chunk_paths):
+            inputs.append(ffmpeg.input(path))
+        
+        # Create crossfade between each pair of videos
+        current = inputs[0]
+        
+        for i in range(1, len(inputs)):
+            next_input = inputs[i]
+            
+            # Crossfade transition
+            current = ffmpeg.filter(
+                [current, next_input],
+                'xfade',
+                transition='fade',
+                duration=overlap_duration,
+                offset=7.0 - overlap_duration  # Start fade before end of previous clip
+            )
+        
+        # Output final stitched video
+        out = ffmpeg.output(current, output_path, vcodec='libx264', acodec='aac')
+        ffmpeg.run(out, overwrite_output=True, capture_stdout=True, capture_stderr=True, quiet=True)
+        
+        return os.path.exists(output_path)
+        
+    except Exception as e:
+        typer.echo(f"Error stitching chunks: {e}", err=True)
+        return False
+
+def submit_veo3_request(prompt: str, duration: float, max_retries: int = 3) -> Dict[str, Any]:
+    """Submit generation request to Veo3 via fal.ai with retry logic."""
     headers = get_fal_headers()
     
     # Ensure duration doesn't exceed 8 seconds and format as required string
@@ -64,24 +104,46 @@ def submit_veo3_request(prompt: str, duration: float) -> Dict[str, Any]:
         "quality": "medium"    # Options: low, medium, high
     }
     
-    try:
-        response = requests.post(
-            FAL_API_BASE,
-            headers=headers,
-            json=payload,
-            timeout=60
-        )
-        
-        if response.status_code == 200:
-            result = response.json()
-            return result
-        else:
-            typer.echo(f"API Error {response.status_code}: {response.text}", err=True)
-            return {"error": f"HTTP {response.status_code}: {response.text}"}
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                typer.echo(f"   Retry {attempt}/{max_retries - 1}...")
+                time.sleep(5 * attempt)  # Exponential backoff
             
-    except requests.exceptions.RequestException as e:
-        typer.echo(f"Request failed: {e}", err=True)
-        return {"error": str(e)}
+            response = requests.post(
+                FAL_API_BASE,
+                headers=headers,
+                json=payload,
+                timeout=180  # Increased to 3 minutes
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result
+            else:
+                last_error = {
+                    "error": f"API request failed with status {response.status_code}",
+                    "details": response.text
+                }
+                typer.echo(f"   API Error {response.status_code} on attempt {attempt + 1}", err=True)
+                if attempt == max_retries - 1:  # Last attempt
+                    return last_error
+                    
+        except requests.exceptions.Timeout as e:
+            last_error = {"error": f"Request timed out: {str(e)}"}
+            typer.echo(f"   ⏱️  Timeout on attempt {attempt + 1}")
+            if attempt == max_retries - 1:
+                return last_error
+                
+        except requests.exceptions.RequestException as e:
+            last_error = {"error": f"Request failed: {str(e)}"}
+            typer.echo(f"   🔌 Network error on attempt {attempt + 1}: {str(e)}")
+            if attempt == max_retries - 1:
+                return last_error
+    
+    return last_error or {"error": "All retry attempts exhausted"}
 
 def poll_generation_status(request_id: str, max_wait_time: int = 300) -> Dict[str, Any]:
     """Poll fal.ai for generation completion."""
@@ -170,7 +232,7 @@ def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing:
     typer.echo(f"🎬 Generating {scene_id} (8s - fixed by API)...")
     
     # Submit generation request (duration parameter is ignored since API only accepts 8s)
-    result = submit_veo3_request(prompt, 8.0)
+    result = submit_veo3_request(prompt, 8.0, max_retries=2)  # Reduced retries to save money
     
     if "error" in result:
         return {
@@ -340,12 +402,55 @@ def generate_command(
     
     typer.echo(f"\n🚀 Starting generation...")
     
+    # Group scenes by parent (for chunk stitching)
+    scene_groups = {}
+    for scene in scenes:
+        parent_id = scene.get('parent_scene_id', scene['id'])
+        if parent_id not in scene_groups:
+            scene_groups[parent_id] = []
+        scene_groups[parent_id].append(scene)
+    
     for i, scene in enumerate(scenes, 1):
         typer.echo(f"\n[{i}/{len(scenes)}] Processing {scene['id']}...")
         
         result = generate_single_scene(scene, output_dir, skip_existing)
         results.append(result)
         total_cost += result.get('cost', 0)
+    
+    # Auto-stitch chunks for scenes that were split
+    typer.echo(f"\n🎬 Checking for scenes to stitch...")
+    stitched_results = []
+    
+    for parent_id, group in scene_groups.items():
+        if len(group) > 1 and all(s.get('is_chunk') for s in group):
+            # This is a split scene with multiple chunks
+            typer.echo(f"🔗 Stitching {len(group)} chunks for {parent_id}...")
+            
+            # Sort chunks by chunk number
+            group.sort(key=lambda x: x.get('chunk_number', 0))
+            
+            # Get paths of generated clips
+            chunk_paths = []
+            for chunk in group:
+                result = next((r for r in results if r['scene_id'] == chunk['id']), None)
+                if result and result.get('success') and result.get('output_path'):
+                    chunk_paths.append(result['output_path'])
+            
+            if len(chunk_paths) == len(group):
+                # All chunks generated successfully, stitch them
+                stitched_path = os.path.join(output_dir, f"{parent_id}_stitched.mp4")
+                if stitch_scene_chunks(chunk_paths, stitched_path, overlap_duration=1.0):
+                    stitched_results.append({
+                        'parent_scene_id': parent_id,
+                        'chunks_used': len(chunk_paths),
+                        'output_path': stitched_path,
+                        'success': True
+                    })
+                    typer.echo(f"✅ Stitched {parent_id} -> {stitched_path}")
+                else:
+                    typer.echo(f"❌ Failed to stitch {parent_id}")
+            else:
+                typer.echo(f"⚠️ Cannot stitch {parent_id} - some chunks failed to generate")
         
         # Brief pause between requests to be nice to the API
         if i < len(scenes):

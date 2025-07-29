@@ -148,19 +148,98 @@ def extract_audio_segment(video_path: str, start_time: float, end_time: float, o
         typer.echo(f"Error extracting audio segment: {e}", err=True)
         return False
 
-def transcribe_audio_whisper(audio_path: str) -> str:
-    """Transcribe audio using OpenAI Whisper (if available)."""
+def transcribe_audio_whisper(audio_path: str) -> Dict[str, Any]:
+    """Transcribe audio using OpenAI Whisper with timestamps."""
     try:
         import whisper
         model = whisper.load_model("base")
-        result = model.transcribe(audio_path)
-        return result["text"].strip()
+        result = model.transcribe(audio_path, word_timestamps=True)
+        return {
+            "text": result["text"].strip(),
+            "segments": result.get("segments", [])
+        }
     except ImportError:
         typer.echo("Whisper not available. Install with: pip install openai-whisper", err=True)
-        return ""
+        return {"text": "", "segments": []}
     except Exception as e:
         typer.echo(f"Error transcribing audio: {e}", err=True)
-        return ""
+        return {"text": "", "segments": []}
+
+def split_long_scene(scene: Dict[str, Any], dialogue_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Split scenes longer than 8 seconds into manageable chunks."""
+    if scene['duration'] <= 8.0:
+        return [scene]
+    
+    chunk_length = 7.0  # 7 seconds per chunk
+    overlap = 1.0       # 1 second overlap
+    
+    chunks = []
+    start_time = scene['start_seconds']
+    end_time = scene['end_seconds']
+    chunk_num = 1
+    
+    current_start = start_time
+    
+    while current_start < end_time:
+        # Calculate chunk end (but don't exceed scene end)
+        current_end = min(current_start + chunk_length, end_time)
+        
+        # If this would be a very short final chunk, extend the previous chunk instead
+        if end_time - current_end < 2.0 and len(chunks) > 0:
+            chunks[-1]['end_seconds'] = end_time
+            chunks[-1]['end_time'] = format_timestamp(end_time)
+            chunks[-1]['duration'] = end_time - chunks[-1]['start_seconds']
+            break
+        
+        # Extract dialogue for this chunk
+        chunk_dialogue = extract_dialogue_for_timerange(
+            dialogue_data, current_start - start_time, current_end - start_time
+        )
+        
+        chunk = {
+            'id': f"{scene['id']}_chunk_{chunk_num:02d}",
+            'parent_scene_id': scene['id'],
+            'chunk_number': chunk_num,
+            'total_chunks': 0,  # Will be updated after all chunks are created
+            'start_time': format_timestamp(current_start),
+            'end_time': format_timestamp(current_end),
+            'start_seconds': current_start,
+            'end_seconds': current_end,
+            'duration': current_end - current_start,
+            'is_chunk': True,
+            'dialogue': chunk_dialogue,
+            'overlap_with_previous': overlap if chunk_num > 1 else 0,
+            'overlap_with_next': overlap if current_end < end_time else 0
+        }
+        
+        chunks.append(chunk)
+        
+        # Move to next chunk (with overlap)
+        current_start = current_end - overlap
+        chunk_num += 1
+    
+    # Update total_chunks for all chunks
+    for chunk in chunks:
+        chunk['total_chunks'] = len(chunks)
+    
+    typer.echo(f"Split {scene['id']} ({scene['duration']:.1f}s) into {len(chunks)} chunks")
+    return chunks
+
+def extract_dialogue_for_timerange(dialogue_data: Dict[str, Any], start_offset: float, end_offset: float) -> str:
+    """Extract dialogue that occurs within a specific time range."""
+    if not dialogue_data.get("segments"):
+        return dialogue_data.get("text", "")
+    
+    relevant_segments = []
+    for segment in dialogue_data["segments"]:
+        seg_start = segment.get("start", 0)
+        seg_end = segment.get("end", 0)
+        
+        # Include segment if it overlaps with our time range
+        if seg_start < end_offset and seg_end > start_offset:
+            relevant_segments.append(segment["text"].strip())
+    
+    return " ".join(relevant_segments).strip()
 
 def image_to_base64(image_path: str) -> str:
     """Convert image to base64 string."""
@@ -473,23 +552,67 @@ def analyze_command(
                 
                 # Extract audio for dialogue/sound analysis
                 audio_path = os.path.join(temp_dir, f"{scene['id']}_audio.wav")
-                dialogue_text = ""
+                dialogue_data = {"text": "", "segments": []}
                 if extract_audio_segment(video, scene['start_seconds'], scene['end_seconds'], audio_path):
                     typer.echo(f"  Extracting audio/dialogue...")
-                    dialogue_text = transcribe_audio_whisper(audio_path)
-                    if dialogue_text:
-                        typer.echo(f"  Found dialogue: {dialogue_text[:50]}...")
+                    dialogue_data = transcribe_audio_whisper(audio_path)
+                    if dialogue_data["text"]:
+                        typer.echo(f"  Found dialogue: {dialogue_data['text'][:50]}...")
                 
-                analysis = analyze_scene_with_claude(client, scene, frame_paths, dialogue_text)
+                # Split long scenes into chunks
+                scene_chunks = split_long_scene(scene, dialogue_data)
                 
-                # Combine scene info with analysis
-                analyzed_scene = {
-                    **scene,
-                    **analysis
-                }
-                if dialogue_text:
-                    analyzed_scene['dialogue'] = dialogue_text
-                analyzed_scenes.append(analyzed_scene)
+                # Analyze each chunk
+                for chunk in scene_chunks:
+                    chunk_dialogue = chunk.get('dialogue', dialogue_data["text"])
+                    
+                    # For chunks, we need to extract frames specific to the chunk timerange
+                    if chunk.get('is_chunk'):
+                        # Extract frames for this specific chunk
+                        chunk_frame_paths = []
+                        chunk_duration = chunk['duration']
+                        
+                        if chunk_duration <= 2.0:
+                            # Short chunk: 1 frame from middle
+                            mid_time = (chunk['start_seconds'] + chunk['end_seconds']) / 2
+                            frame_path = os.path.join(temp_dir, f"{chunk['id']}_frame_1.jpg")
+                            if extract_frame(video, mid_time, frame_path):
+                                chunk_frame_paths.append(frame_path)
+                        elif chunk_duration <= 4.0:
+                            # Medium chunk: 2 frames
+                            times = [
+                                chunk['start_seconds'] + 0.2,
+                                chunk['end_seconds'] - 0.2
+                            ]
+                            for j, time in enumerate(times):
+                                frame_path = os.path.join(temp_dir, f"{chunk['id']}_frame_{j+1}.jpg")
+                                if extract_frame(video, time, frame_path):
+                                    chunk_frame_paths.append(frame_path)
+                        else:
+                            # Long chunk: 3 frames
+                            times = [
+                                chunk['start_seconds'] + 0.2,
+                                (chunk['start_seconds'] + chunk['end_seconds']) / 2,
+                                chunk['end_seconds'] - 0.2
+                            ]
+                            for j, time in enumerate(times):
+                                frame_path = os.path.join(temp_dir, f"{chunk['id']}_frame_{j+1}.jpg")
+                                if extract_frame(video, time, frame_path):
+                                    chunk_frame_paths.append(frame_path)
+                        
+                        analysis = analyze_scene_with_claude(client, chunk, chunk_frame_paths, chunk_dialogue)
+                    else:
+                        # Regular scene, use existing frames
+                        analysis = analyze_scene_with_claude(client, chunk, frame_paths, chunk_dialogue)
+                    
+                    # Combine chunk info with analysis
+                    analyzed_scene = {
+                        **chunk,
+                        **analysis
+                    }
+                    if chunk_dialogue:
+                        analyzed_scene['dialogue'] = chunk_dialogue
+                    analyzed_scenes.append(analyzed_scene)
             else:
                 typer.echo(f"Warning: Could not extract any frames for {scene['id']}", err=True)
     
