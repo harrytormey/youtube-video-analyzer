@@ -50,12 +50,16 @@ def submit_veo3_request(prompt: str, duration: float) -> Dict[str, Any]:
     """Submit generation request to Veo3 via fal.ai."""
     headers = get_fal_headers()
     
-    # Ensure duration doesn't exceed 8 seconds
-    duration = min(duration, 8.0)
+    # Ensure duration doesn't exceed 8 seconds and format as required string
+    duration_capped = min(duration, 8.0)
+    
+    # Veo3 API currently only accepts "8s" as duration
+    # According to the API error, only "8s" is permitted
+    duration_str = "8s"
     
     payload = {
         "prompt": prompt,
-        "duration": duration,
+        "duration": duration_str,
         "resolution": "720p",  # Options: 720p, 1080p
         "quality": "medium"    # Options: low, medium, high
     }
@@ -69,7 +73,8 @@ def submit_veo3_request(prompt: str, duration: float) -> Dict[str, Any]:
         )
         
         if response.status_code == 200:
-            return response.json()
+            result = response.json()
+            return result
         else:
             typer.echo(f"API Error {response.status_code}: {response.text}", err=True)
             return {"error": f"HTTP {response.status_code}: {response.text}"}
@@ -154,23 +159,16 @@ def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing:
                 "cost": 0
             }
     
-    # Validate scene duration
-    if scene['duration'] > 8:
-        typer.echo(f"⚠️  {scene_id}: Duration {scene['duration']:.1f}s exceeds 8s limit, capping at 8s")
-        duration = 8.0
-    else:
-        duration = scene['duration']
-    
     # Validate prompt length
     prompt = scene['prompt']
     if len(prompt) > 1000:
         typer.echo(f"⚠️  {scene_id}: Prompt too long ({len(prompt)} chars), truncating")
         prompt = prompt[:997] + "..."
     
-    typer.echo(f"🎬 Generating {scene_id} ({duration:.1f}s)...")
+    typer.echo(f"🎬 Generating {scene_id} (8s - fixed by API)...")
     
-    # Submit generation request
-    result = submit_veo3_request(prompt, duration)
+    # Submit generation request (duration parameter is ignored since API only accepts 8s)
+    result = submit_veo3_request(prompt, 8.0)
     
     if "error" in result:
         return {
@@ -180,49 +178,55 @@ def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing:
             "cost": 0
         }
     
-    # Extract request ID for polling
-    request_id = result.get("request_id")
-    if not request_id:
+    # Check if this is a direct response (synchronous) or needs polling (asynchronous)
+    if "video" in result and "url" in result["video"]:
+        # Direct/synchronous response - video is ready immediately
+        video_url = result["video"]["url"]
+        typer.echo(f"✅ Video generated synchronously")
+    elif "request_id" in result:
+        # Asynchronous response - need to poll for completion
+        request_id = result["request_id"]
+        typer.echo(f"Polling for completion (request ID: {request_id})")
+        
+        final_result = poll_generation_status(request_id)
+        
+        if "error" in final_result:
+            return {
+                "scene_id": scene_id,
+                "status": "failed",
+                "error": final_result["error"],
+                "cost": 0
+            }
+        
+        video_url = final_result.get("video_url")
+        if not video_url:
+            return {
+                "scene_id": scene_id,
+                "status": "failed",
+                "error": "No video URL in polling response",
+                "cost": 0
+            }
+    else:
         return {
             "scene_id": scene_id,
             "status": "failed",
-            "error": "No request ID returned",
-            "cost": 0
-        }
-    
-    # Poll for completion
-    final_result = poll_generation_status(request_id)
-    
-    if "error" in final_result:
-        return {
-            "scene_id": scene_id,
-            "status": "failed",
-            "error": final_result["error"],
-            "cost": 0
-        }
-    
-    # Download the generated video
-    video_url = final_result.get("video_url")
-    if not video_url:
-        return {
-            "scene_id": scene_id,
-            "status": "failed",
-            "error": "No video URL in response",
+            "error": "Unexpected API response format",
             "cost": 0
         }
     
     if download_generated_video(video_url, output_path):
-        # Estimate cost (placeholder - actual cost from API response if available)
-        estimated_cost = duration * 0.10  # $0.10 per second estimate
-        actual_cost = final_result.get("cost", estimated_cost)
+        # All Veo3 clips are 8 seconds (API limitation)
+        actual_duration = 8.0
+        estimated_cost = actual_duration * 0.10  # $0.10 per second estimate
+        actual_cost = result.get("cost", estimated_cost)  # Use original result, not final_result
         
-        typer.echo(f"✅ Generated {scene_id}: {output_path}")
+        typer.echo(f"✅ Generated {scene_id}: {output_path} (8s)")
         return {
             "scene_id": scene_id,
             "status": "completed",
             "output_path": output_path,
             "cost": actual_cost,
-            "duration": duration
+            "duration": actual_duration
         }
     else:
         return {
@@ -281,13 +285,13 @@ def generate_command(
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
-    # Show generation plan
-    total_duration = sum(min(scene['duration'], 8.0) for scene in scenes)
+    # Show generation plan - all clips will be 8 seconds due to API limitation
+    total_duration = len(scenes) * 8.0  # All clips are 8 seconds
     estimated_cost = total_duration * 0.10  # $0.10 per second estimate
     
     typer.echo(f"\n🎬 Generation Plan:")
     typer.echo(f"Scenes to generate: {len(scenes)}")
-    typer.echo(f"Total duration: {total_duration:.1f}s")
+    typer.echo(f"Total duration: {total_duration:.1f}s (all clips will be 8s due to Veo3 API)")
     typer.echo(f"Estimated cost: ${estimated_cost:.2f}")
     typer.echo(f"Output directory: {output_dir}")
     
@@ -296,7 +300,7 @@ def generate_command(
         for scene in scenes:
             existing = check_existing_clip(scene['id'], output_dir)
             status = "EXISTS" if existing else "GENERATE"
-            typer.echo(f"  {scene['id']}: {status} ({scene['duration']:.1f}s)")
+            typer.echo(f"  {scene['id']}: {status} (8s - API fixed duration)")
         return
     
     # Confirm before proceeding
