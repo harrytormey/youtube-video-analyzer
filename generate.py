@@ -159,11 +159,13 @@ def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing:
                 "cost": 0
             }
     
-    # Validate prompt length
-    prompt = scene['prompt']
-    if len(prompt) > 1000:
-        typer.echo(f"⚠️  {scene_id}: Prompt too long ({len(prompt)} chars), truncating")
-        prompt = prompt[:997] + "..."
+    # Get the detailed prompt (no length limit now for better quality)
+    # Handle both old and new field names for backward compatibility
+    prompt = scene.get('scene_prompt', scene.get('prompt', 'Generate video scene'))
+    if len(prompt) > 2000:
+        typer.echo(f"📝 {scene_id}: Long detailed prompt ({len(prompt)} chars)")
+    else:
+        typer.echo(f"📝 {scene_id}: Detailed prompt ({len(prompt)} chars)")
     
     typer.echo(f"🎬 Generating {scene_id} (8s - fixed by API)...")
     

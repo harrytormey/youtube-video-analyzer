@@ -133,56 +133,139 @@ def extract_frame(video_path: str, timestamp: float, output_path: str) -> bool:
         typer.echo(f"Error extracting frame at {timestamp}s: {e}", err=True)
         return False
 
+def extract_audio_segment(video_path: str, start_time: float, end_time: float, output_path: str) -> bool:
+    """Extract audio segment from video."""
+    try:
+        (
+            ffmpeg
+            .input(video_path, ss=start_time, t=end_time - start_time)
+            .output(output_path, acodec='pcm_s16le', ac=1, ar='16000')
+            .overwrite_output()
+            .run(capture_stdout=True, capture_stderr=True, quiet=True)
+        )
+        return True
+    except Exception as e:
+        typer.echo(f"Error extracting audio segment: {e}", err=True)
+        return False
+
+def transcribe_audio_whisper(audio_path: str) -> str:
+    """Transcribe audio using OpenAI Whisper (if available)."""
+    try:
+        import whisper
+        model = whisper.load_model("base")
+        result = model.transcribe(audio_path)
+        return result["text"].strip()
+    except ImportError:
+        typer.echo("Whisper not available. Install with: pip install openai-whisper", err=True)
+        return ""
+    except Exception as e:
+        typer.echo(f"Error transcribing audio: {e}", err=True)
+        return ""
+
 def image_to_base64(image_path: str) -> str:
     """Convert image to base64 string."""
     with open(image_path, 'rb') as img_file:
         return base64.b64encode(img_file.read()).decode('utf-8')
 
-def analyze_scene_with_claude(client: Anthropic, scene: Dict[str, Any], frame_path: str) -> Dict[str, Any]:
-    """Analyze a scene using Claude with the extracted frame."""
+def analyze_scene_with_claude(client: Anthropic, scene: Dict[str, Any], frame_paths: List[str], dialogue: str = "") -> Dict[str, Any]:
+    """Analyze a scene using Claude with multiple extracted frames."""
     try:
-        # Convert image to base64
-        image_base64 = image_to_base64(frame_path)
+        # Convert images to base64
+        frame_data = []
+        for i, frame_path in enumerate(frame_paths):
+            image_base64 = image_to_base64(frame_path)
+            frame_data.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/jpeg",
+                    "data": image_base64
+                }
+            })
         
-        prompt = f"""Analyze this video frame from a {scene['duration']:.1f}-second scene and create a detailed prompt for Veo3 video generation.
+        frame_count = len(frame_paths)
+        frame_desc = f"{frame_count} frames from different moments in this {scene['duration']:.1f}-second scene (beginning, middle, end)" if frame_count > 1 else f"frame from this {scene['duration']:.1f}-second scene"
+        
+        # Create frame descriptions for temporal analysis
+        frame_labels = []
+        if frame_count == 1:
+            frame_labels = ["middle of scene"]
+        elif frame_count == 2:
+            frame_labels = ["beginning", "end"]
+        else:
+            frame_labels = ["beginning", "middle", "end"]
+        
+        frame_analysis_text = ""
+        for i, label in enumerate(frame_labels):
+            frame_analysis_text += f"Frame {i+1} ({label}): Analyze this frame's specific visual elements, character positions, lighting, and what's happening at this moment.\n"
+        
+        dialogue_section = ""
+        if dialogue.strip():
+            dialogue_section = f"""
+DIALOGUE/AUDIO CONTENT:
+"{dialogue}"
+
+IMPORTANT: Include this dialogue/audio in your scene description. Describe when and how it's spoken/heard during the sequence.
+"""
+
+        prompt = f"""You are an expert cinematographer and director. Analyze these {frame_count} frames from a {scene['duration']:.1f}-second video scene and create an EXTREMELY DETAILED cinematic prompt for Veo3.
 
 Scene timing: {scene['start_time']} to {scene['end_time']}
+Duration: {scene['duration']:.1f} seconds
 
-Please provide:
-1. A detailed description of what's happening in the scene
-2. A Veo3-optimized prompt for generating this scene (focus on visual elements, camera movement, lighting, mood)
-3. Diagnostic flags for potential generation challenges
+{frame_analysis_text}{dialogue_section}
 
-Format your response as JSON with this structure:
+CRITICAL: Describe this as a TEMPORAL SEQUENCE showing progression from beginning to end. Don't just describe static images - describe the MOTION, TRANSITIONS, and FLOW between moments.
+
+ANALYZE FRAME-BY-FRAME PROGRESSION:
+- What changes between frames (character movement, camera movement, lighting shifts)
+- How elements transition from beginning to end
+- Specific motion happening (walking, gesturing, objects moving)
+- Camera movement (panning, zooming, tracking)
+- Environmental changes (lighting shifts, background changes)
+
+FOR EACH FRAME, DESCRIBE:
+- Exact lighting (color temperature, shadows, highlights, reflections)
+- Character details (clothing, expressions, posture, actions)
+- Objects/props (materials, textures, positions)
+- Environmental elements (location, weather, background)
+- Camera angle and positioning
+
+CREATE A TEMPORAL SCREENPLAY PROMPT:
+"LOCATION – TIME OF DAY (special notes)
+[Beginning] Detailed description of opening moment...
+The camera [movement type] as [character/action] [specific motion]...
+[Middle] Progression continues with [specific changes]...
+[End] The sequence concludes with [final state/action]...
+Throughout the scene, [lighting, atmosphere, mood elements]..."
+
+MAKE IT 500+ WORDS describing the COMPLETE SEQUENCE, not just static moments.
+
+Return ONLY valid JSON:
+
+```json
 {{
-    "description": "Detailed description of the scene",
-    "prompt": "Veo3 generation prompt (be specific about camera angles, lighting, movement, style)",
+    "description": "Brief summary of the complete sequence and what progresses through the scene",
+    "scene_prompt": "ULTRA-DETAILED temporal sequence description with location header, frame-by-frame progression, character movement, camera motion, environmental changes, and complete flow from beginning to end",
+    "cinematic_notes": "Camera movement, lens type, lighting progression, color grading, composition changes, and mood evolution throughout the sequence",
     "diagnostics": {{
-        "text_heavy": boolean,
-        "camera_motion": boolean,
-        "complex_characters": boolean,
-        "rapid_motion": boolean,
-        "duration_warning": boolean
+        "text_heavy": false,
+        "camera_motion": true,
+        "complex_characters": true,
+        "rapid_motion": false,
+        "duration_warning": {str(scene['duration'] > 8).lower()}
     }}
 }}
-
-Keep the Veo3 prompt under 500 characters and focus on visual storytelling elements."""
+```"""
 
         response = client.messages.create(
             model="claude-3-5-sonnet-20241022",
-            max_tokens=1000,
+            max_tokens=4000,
             messages=[
                 {
                     "role": "user",
                     "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/jpeg",
-                                "data": image_base64
-                            }
-                        },
+                        *frame_data,
                         {
                             "type": "text",
                             "text": prompt
@@ -192,24 +275,74 @@ Keep the Veo3 prompt under 500 characters and focus on visual storytelling eleme
             ]
         )
         
-        # Parse Claude's response
+        # Parse Claude's response and clean control characters
         response_text = response.content[0].text.strip()
+        # Remove control characters that break JSON parsing
+        import re
+        response_text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', response_text)
         
-        # Try to extract JSON from the response
+        # Try to extract JSON from the response with multiple methods
+        analysis = None
+        json_str = ""
+        
         try:
-            # Find JSON in the response
-            start_idx = response_text.find('{')
-            end_idx = response_text.rfind('}') + 1
-            if start_idx != -1 and end_idx != -1:
-                json_str = response_text[start_idx:end_idx]
-                analysis = json.loads(json_str)
+            # Method 1: Look for ```json blocks
+            json_start = response_text.find('```json')
+            if json_start != -1:
+                json_start = response_text.find('{', json_start)
+                json_end = response_text.find('```', json_start)
+                if json_end != -1:
+                    json_str = response_text[json_start:json_end].strip()
+                else:
+                    json_str = response_text[json_start:].strip()
+                    # Find the last complete brace
+                    brace_count = 0
+                    last_complete = len(json_str)
+                    for i, char in enumerate(json_str):
+                        if char == '{':
+                            brace_count += 1
+                        elif char == '}':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                last_complete = i + 1
+                    json_str = json_str[:last_complete]
             else:
-                raise ValueError("No JSON found in response")
-        except (json.JSONDecodeError, ValueError):
-            # Fallback: create a basic structure
+                # Method 2: Find first complete JSON object
+                start_idx = response_text.find('{')
+                if start_idx == -1:
+                    raise ValueError("No JSON found in response")
+                
+                # Count braces to find complete JSON
+                brace_count = 0
+                end_idx = start_idx
+                for i, char in enumerate(response_text[start_idx:], start_idx):
+                    if char == '{':
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            end_idx = i + 1
+                            break
+                
+                json_str = response_text[start_idx:end_idx]
+            
+            # Try to parse the JSON
+            analysis = json.loads(json_str)
+            
+            # Validate required fields exist
+            if 'scene_prompt' not in analysis or 'cinematic_notes' not in analysis:
+                raise ValueError("Missing required fields in JSON response")
+                
+        except (json.JSONDecodeError, ValueError) as e:
+            typer.echo(f"JSON parsing failed for {scene['id']}: {e}", err=True)
+            typer.echo("Raw response:", err=True)
+            typer.echo(response_text[:500] + "..." if len(response_text) > 500 else response_text, err=True)
+            
+            # Create detailed fallback using the raw response (no truncation)
             analysis = {
-                "description": response_text[:200] + "..." if len(response_text) > 200 else response_text,
-                "prompt": f"Generate a {scene['duration']:.1f}-second video scene",
+                "description": f"Scene analysis for {scene['duration']:.1f}s video segment",
+                "scene_prompt": response_text.strip(),  # Keep full response, don't truncate
+                "cinematic_notes": "Raw analysis provided - JSON parsing failed but full content preserved",
                 "diagnostics": {
                     "text_heavy": False,
                     "camera_motion": False,
@@ -228,7 +361,8 @@ Keep the Veo3 prompt under 500 characters and focus on visual storytelling eleme
         typer.echo(f"Error analyzing scene {scene['id']}: {e}", err=True)
         return {
             "description": f"Scene analysis failed: {str(e)}",
-            "prompt": f"Generate a {scene['duration']:.1f}-second video scene",
+            "scene_prompt": f"Generate a {scene['duration']:.1f}-second video scene",
+            "cinematic_notes": "Technical specifications not available due to analysis error",
             "diagnostics": {
                 "text_heavy": False,
                 "camera_motion": False,
@@ -302,21 +436,62 @@ def analyze_command(
         for i, scene in enumerate(scenes):
             typer.echo(f"Analyzing scene {i+1}/{len(scenes)}: {scene['id']}")
             
-            # Extract frame from middle of scene
-            mid_time = (scene['start_seconds'] + scene['end_seconds']) / 2
-            frame_path = os.path.join(temp_dir, f"{scene['id']}_frame.jpg")
+            # Extract 2-3 frames from scene (beginning, middle, end if long enough)
+            frame_paths = []
+            duration = scene['duration']
             
-            if extract_frame(video, mid_time, frame_path):
-                analysis = analyze_scene_with_claude(client, scene, frame_path)
+            if duration <= 2.0:
+                # Short scene: extract 1 frame from middle
+                mid_time = (scene['start_seconds'] + scene['end_seconds']) / 2
+                frame_path = os.path.join(temp_dir, f"{scene['id']}_frame_1.jpg")
+                if extract_frame(video, mid_time, frame_path):
+                    frame_paths.append(frame_path)
+            elif duration <= 4.0:
+                # Medium scene: extract 2 frames (beginning and end)
+                times = [
+                    scene['start_seconds'] + 0.2,  # Beginning (slightly offset)
+                    scene['end_seconds'] - 0.2     # End (slightly offset)
+                ]
+                for j, time in enumerate(times):
+                    frame_path = os.path.join(temp_dir, f"{scene['id']}_frame_{j+1}.jpg")
+                    if extract_frame(video, time, frame_path):
+                        frame_paths.append(frame_path)
+            else:
+                # Long scene: extract 3 frames (beginning, middle, end)
+                times = [
+                    scene['start_seconds'] + 0.2,  # Beginning
+                    (scene['start_seconds'] + scene['end_seconds']) / 2,  # Middle
+                    scene['end_seconds'] - 0.2     # End
+                ]
+                for j, time in enumerate(times):
+                    frame_path = os.path.join(temp_dir, f"{scene['id']}_frame_{j+1}.jpg")
+                    if extract_frame(video, time, frame_path):
+                        frame_paths.append(frame_path)
+            
+            if frame_paths:
+                typer.echo(f"  Extracted {len(frame_paths)} frames for analysis")
+                
+                # Extract audio for dialogue/sound analysis
+                audio_path = os.path.join(temp_dir, f"{scene['id']}_audio.wav")
+                dialogue_text = ""
+                if extract_audio_segment(video, scene['start_seconds'], scene['end_seconds'], audio_path):
+                    typer.echo(f"  Extracting audio/dialogue...")
+                    dialogue_text = transcribe_audio_whisper(audio_path)
+                    if dialogue_text:
+                        typer.echo(f"  Found dialogue: {dialogue_text[:50]}...")
+                
+                analysis = analyze_scene_with_claude(client, scene, frame_paths, dialogue_text)
                 
                 # Combine scene info with analysis
                 analyzed_scene = {
                     **scene,
                     **analysis
                 }
+                if dialogue_text:
+                    analyzed_scene['dialogue'] = dialogue_text
                 analyzed_scenes.append(analyzed_scene)
             else:
-                typer.echo(f"Warning: Could not extract frame for {scene['id']}", err=True)
+                typer.echo(f"Warning: Could not extract any frames for {scene['id']}", err=True)
     
     # Create final output
     output_data = {
@@ -366,9 +541,14 @@ def save_markdown_report(data: Dict[str, Any], output_path: str):
 
 **Description:** {scene['description']}
 
-**Veo3 Prompt:**
+**Scene Prompt:**
 ```
-{scene['prompt']}
+{scene['scene_prompt']}
+```
+
+**Cinematic Notes:**
+```
+{scene['cinematic_notes']}
 ```
 
 **Diagnostics:**
