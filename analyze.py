@@ -35,11 +35,19 @@ def detect_scenes(video_path: str, threshold: float = 0.4) -> List[Dict[str, Any
         duration = float(probe['streams'][0]['duration'])
         typer.echo(f"Video duration: {duration:.1f}s")
         
-        # Run ffmpeg scene detection
+        # Run ffmpeg scene detection with better parameters
         typer.echo("Running scene detection...")
         cmd = (
             ffmpeg.input(video_path)
             .filter('select', f'gt(scene,{threshold})')
+            .filter('showinfo')
+            .output('-', f='null')
+        )
+        
+        # Also run motion detection to find action peaks
+        motion_cmd = (
+            ffmpeg.input(video_path)
+            .filter('select', 'gt(scene,0.1)')  # Lower threshold for motion detection
             .filter('showinfo')
             .output('-', f='null')
         )
@@ -133,6 +141,110 @@ def extract_frame(video_path: str, timestamp: float, output_path: str) -> bool:
         typer.echo(f"Error extracting frame at {timestamp}s: {e}", err=True)
         return False
 
+def extract_motion_frames(video_path: str, start_time: float, end_time: float, output_dir: str, scene_id: str) -> List[str]:
+    """Extract frames at moments of high motion/action within a scene using FFmpeg motion detection."""
+    frame_paths = []
+    duration = end_time - start_time
+    
+    try:
+        # Use FFmpeg motion analysis to find high-motion moments
+        import subprocess
+        
+        # First, detect motion vectors throughout the scene
+        motion_cmd = [
+            'ffmpeg', '-i', video_path, '-ss', str(start_time), '-t', str(duration),
+            '-vf', 'select=gt(scene\\,0.01),showinfo', '-f', 'null', '-'
+        ]
+        
+        result = subprocess.run(motion_cmd, capture_output=True, text=True)
+        
+        # Parse motion peaks from stderr
+        motion_timestamps = []
+        for line in result.stderr.split('\n'):
+            if 'showinfo' in line and 'pts_time:' in line:
+                try:
+                    parts = line.split('pts_time:')
+                    if len(parts) > 1:
+                        rel_time = float(parts[1].split()[0])
+                        abs_time = start_time + rel_time
+                        if abs_time < end_time:
+                            motion_timestamps.append(abs_time)
+                except (ValueError, IndexError):
+                    continue
+        
+        # Combine motion detection with strategic sampling to ensure we capture action
+        key_times = []
+        
+        # Always include motion peaks if found
+        if motion_timestamps:
+            motion_times = sorted(set(motion_timestamps))[:3]  # Top 3 motion peaks
+            key_times.extend(motion_times)
+            typer.echo(f"  Found {len(motion_times)} motion peaks for frame extraction")
+        
+        # Add strategic sampling points to ensure we don't miss action
+        if duration <= 3.0:
+            # For short scenes, sample densely
+            strategic_times = [start_time + 0.2, start_time + duration*0.5, start_time + duration - 0.2]
+        elif duration <= 6.0:
+            # For medium scenes like dog jumping, focus on later action (60%-90% of scene)
+            strategic_times = [start_time + duration*0.2, start_time + duration*0.5, 
+                             start_time + duration*0.7, start_time + duration*0.9]
+        else:
+            # For long scenes, sample throughout but emphasize action zones
+            strategic_times = [start_time + 0.5, start_time + duration*0.3, 
+                             start_time + duration*0.6, start_time + duration*0.8, 
+                             start_time + duration - 0.5]
+        
+        # Add strategic points that aren't already covered by motion detection
+        for stime in strategic_times:
+            if not any(abs(stime - mtime) < 0.5 for mtime in key_times):  # Avoid duplicates within 0.5s
+                key_times.append(stime)
+        
+        # Sort and limit to max 5 frames
+        key_times = sorted(set(key_times))[:5]
+        
+        # Extract frames at these key moments
+        for i, timestamp in enumerate(key_times):
+            if timestamp < end_time:  # Ensure we don't exceed scene boundary
+                frame_path = os.path.join(output_dir, f"{scene_id}_motion_frame_{i+1}.jpg")
+                if extract_frame(video_path, timestamp, frame_path):
+                    frame_paths.append(frame_path)
+                    rel_time = timestamp - start_time
+                    typer.echo(f"    Frame {i+1}: {rel_time:.1f}s into scene")
+                    
+        typer.echo(f"  Extracted {len(frame_paths)} motion-focused frames for analysis")
+        return frame_paths
+        
+    except Exception as e:
+        typer.echo(f"Error extracting motion frames: {e}", err=True)
+        # Fallback to original method
+        return extract_frames_original_method(video_path, start_time, end_time, output_dir, scene_id)
+
+def extract_frames_original_method(video_path: str, start_time: float, end_time: float, output_dir: str, scene_id: str) -> List[str]:
+    """Fallback frame extraction method."""
+    frame_paths = []
+    duration = end_time - start_time
+    
+    if duration <= 2.0:
+        mid_time = (start_time + end_time) / 2
+        frame_path = os.path.join(output_dir, f"{scene_id}_frame_1.jpg")
+        if extract_frame(video_path, mid_time, frame_path):
+            frame_paths.append(frame_path)
+    elif duration <= 4.0:
+        times = [start_time + 0.2, end_time - 0.2]
+        for j, time in enumerate(times):
+            frame_path = os.path.join(output_dir, f"{scene_id}_frame_{j+1}.jpg")
+            if extract_frame(video_path, time, frame_path):
+                frame_paths.append(frame_path)
+    else:
+        times = [start_time + 0.2, (start_time + end_time) / 2, end_time - 0.2]
+        for j, time in enumerate(times):
+            frame_path = os.path.join(output_dir, f"{scene_id}_frame_{j+1}.jpg")
+            if extract_frame(video_path, time, frame_path):
+                frame_paths.append(frame_path)
+    
+    return frame_paths
+
 def extract_audio_segment(video_path: str, start_time: float, end_time: float, output_path: str) -> bool:
     """Extract audio segment from video."""
     try:
@@ -168,7 +280,10 @@ def transcribe_audio_whisper(audio_path: str) -> Dict[str, Any]:
 def split_long_scene(scene: Dict[str, Any], dialogue_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Split scenes longer than 8 seconds into manageable chunks."""
     if scene['duration'] <= 8.0:
-        return [scene]
+        # For short scenes, add dialogue directly to the scene
+        scene_with_dialogue = scene.copy()
+        scene_with_dialogue['dialogue'] = dialogue_data.get("text", "").strip()
+        return [scene_with_dialogue]
     
     chunk_length = 7.0  # 7 seconds per chunk
     overlap = 1.0       # 1 second overlap
@@ -337,51 +452,75 @@ VISUAL CONSISTENCY REQUIREMENTS:
 
 """
 
-        prompt = f"""You are an expert cinematographer and director. Analyze these {frame_count} frames from a {scene['duration']:.1f}-second video scene and create an EXTREMELY DETAILED cinematic prompt for Veo3.
+        prompt = f"""You are a professional video analyst and Veo3 prompt engineer. You are analyzing a {scene['duration']:.1f}-second VIDEO SEQUENCE with {frame_count} frames captured at different moments.
+
+CRITICAL INSTRUCTIONS:
+- This is NOT a collection of static images - it's a TEMPORAL SEQUENCE showing motion over time
+- Focus on WHAT HAPPENS between frames - the motion, action, and changes
+- Describe the DYNAMIC ELEMENTS: character movement, object motion, progression of events
+- Pay special attention to any jumping, falling, reaching, or rapid movements
 
 Scene timing: {scene['start_time']} to {scene['end_time']}
 Duration: {scene['duration']:.1f} seconds
 
 {frame_analysis_text}{dialogue_section}{chunk_context}
 
-CRITICAL: Describe this as a TEMPORAL SEQUENCE showing progression from beginning to end. Don't just describe static images - describe the MOTION, TRANSITIONS, and FLOW between moments.
+ANALYZE THE TEMPORAL SEQUENCE USING THIS DETAILED TEMPLATE:
 
-ANALYZE FRAME-BY-FRAME PROGRESSION:
-- What changes between frames (character movement, camera movement, lighting shifts)
-- How elements transition from beginning to end
-- Specific motion happening (walking, gesturing, objects moving)
-- Camera movement (panning, zooming, tracking)
-- Environmental changes (lighting shifts, background changes)
+**A. KEY VISUALS & MAIN SUBJECTS:**
+- Primary Focus: (The main subject/character of the scene)
+- Objects/Elements of Note: (Detailed descriptions of props, machinery, graphics, natural elements)
+- Character Details: (Age, gender, clothing, expressions, posture, ethnicity, hair, accessories)
 
-FOR EACH FRAME, DESCRIBE:
-- Exact lighting (color temperature, shadows, highlights, reflections)
-- Character details (clothing, expressions, posture, actions)
-- Objects/props (materials, textures, positions)
-- Environmental elements (location, weather, background)
-- Camera angle and positioning
+**B. SETTING & ENVIRONMENT:**
+- Location: (Specific environment - indoor/outdoor, urban/rural, specific room type)
+- Time of Day/Atmosphere: (Morning, afternoon, night, weather conditions)
+- Dominant Colors & Lighting: (Color palette, lighting direction, shadows, highlights)
 
-CREATE A TEMPORAL SCREENPLAY PROMPT:
-"LOCATION – TIME OF DAY (special notes)
-[Beginning] Detailed description of opening moment...
-The camera [movement type] as [character/action] [specific motion]...
-[Middle] Progression continues with [specific changes]...
-[End] The sequence concludes with [final state/action]...
-Throughout the scene, [lighting, atmosphere, mood elements]..."
+**C. CAMERA WORK & COMPOSITION:**
+- Angle(s): (Low, high, eye-level, POV, bird's-eye, Dutch angle)
+- Shot Type(s): (Close-up, medium shot, long shot, establishing shot, extreme close-up)
+- Movement: (Static, pan, tilt, zoom, dolly, tracking, handheld - and its emotional effect)
 
-MAKE IT 500+ WORDS describing the COMPLETE SEQUENCE, not just static moments.
+**D. TEMPORAL SEQUENCE & MOTION ANALYSIS:**
+CRITICAL: This is a {scene['duration']:.1f}-second VIDEO SEQUENCE, not static images. Analyze the MOTION and CHANGES between frames.
+
+- Frame-by-Frame Motion: What specific movements, actions, or changes occur between each frame
+- Character Actions: Detailed description of what characters DO (walking, jumping, reaching, falling, etc.)
+- Object Movement: How objects move, fall, or change position during the sequence
+- Dynamic Events: Key moments of action, impact, or transformation within the scene
+- Progression Arc: How the scene builds from beginning to climax to resolution
+
+**E. AUDIO ELEMENTS:**
+- Sound Effects: Environmental sounds, mechanical sounds, impact sounds
+- Voiceover/Dialogue: Exact transcription and delivery style
+- Music: Genre, tempo, emotional impact, when it swells/fades
+
+**F. VISUAL STYLE & AESTHETICS:**
+- Overall Look: (Realistic, stylized, cinematic, documentary, commercial, artistic)
+- Film Stock/Quality: (Digital, film grain, high contrast, soft/sharp focus)
+- Color Grading: (Warm/cool tones, saturation, contrast levels)
+
+**G. NARRATIVE ROLE & EMOTIONAL IMPACT:**
+- Scene Purpose: Why this scene exists in the video
+- Mood: How this scene makes viewers feel
+- Target Audience: Who this seems designed for
+
+Create a COMPREHENSIVE Veo3 prompt that captures every visual detail for perfect recreation.
 
 Return ONLY valid JSON:
 
 ```json
 {{
-    "description": "Brief summary of the complete sequence and what progresses through the scene",
-    "scene_prompt": "ULTRA-DETAILED temporal sequence description with location header, frame-by-frame progression, character movement, camera motion, environmental changes, and complete flow from beginning to end",
-    "cinematic_notes": "Camera movement, lens type, lighting progression, color grading, composition changes, and mood evolution throughout the sequence",
+    "description": "Brief 1-sentence summary of scene content",
+    "detailed_analysis": "Comprehensive scene breakdown following the template above with specific details about subjects, setting, camera work, actions, audio, visual style, and narrative purpose - minimum 300 words",
+    "veo3_prompt": "Complete Veo3 generation prompt in this format: 'CLIP #{scene.get('id', '1')}: [Scene Title] ({scene['duration']:.1f} seconds): Subject: [detailed subject description] Visual Style & Cinematography: [film style keywords] Shot & Camera: [detailed camera instructions] Lighting & Atmosphere: [lighting and mood] Audio: Soundscape: [sound effects] Music: [music style] Narration: [exact voiceover text if any] - ULTRA DETAILED 400+ word prompt ready for Veo3'",
+    "technical_specs": "Camera specs, lens types, lighting setup, color grading approach, and audio design",
     "diagnostics": {{
-        "text_heavy": false,
+        "text_heavy": {str('text' in str(scene).lower() or any('text' in str(f).lower() for f in frame_paths)).lower()},
         "camera_motion": true,
-        "complex_characters": true,
-        "rapid_motion": false,
+        "complex_characters": {str('character' in dialogue.lower() or len(frame_paths) > 1).lower()},
+        "rapid_motion": {str(scene['duration'] < 3.0).lower()},
         "duration_warning": {str(scene['duration'] > 8).lower()}
     }}
 }}
@@ -458,9 +597,15 @@ Return ONLY valid JSON:
             # Try to parse the JSON
             analysis = json.loads(json_str)
             
-            # Validate required fields exist
-            if 'scene_prompt' not in analysis or 'cinematic_notes' not in analysis:
-                raise ValueError("Missing required fields in JSON response")
+            # Validate required fields exist and map old field names to new ones
+            if 'veo3_prompt' not in analysis and 'scene_prompt' not in analysis:
+                raise ValueError("Missing required prompt field in JSON response")
+            
+            # Map new field names to old ones for backward compatibility
+            if 'veo3_prompt' in analysis and 'scene_prompt' not in analysis:
+                analysis['scene_prompt'] = analysis['veo3_prompt']
+            if 'technical_specs' in analysis and 'cinematic_notes' not in analysis:
+                analysis['cinematic_notes'] = analysis['technical_specs']
                 
         except (json.JSONDecodeError, ValueError) as e:
             typer.echo(f"JSON parsing failed for {scene['id']}: {e}", err=True)
@@ -470,8 +615,11 @@ Return ONLY valid JSON:
             # Create detailed fallback using the raw response (no truncation)
             analysis = {
                 "description": f"Scene analysis for {scene['duration']:.1f}s video segment",
+                "detailed_analysis": response_text.strip()[:1000] + "..." if len(response_text) > 1000 else response_text.strip(),
                 "scene_prompt": response_text.strip(),  # Keep full response, don't truncate
+                "veo3_prompt": f"CLIP #{scene.get('id', '1')}: Scene ({scene['duration']:.1f} seconds): {response_text[:400]}...",
                 "cinematic_notes": "Raw analysis provided - JSON parsing failed but full content preserved",
+                "technical_specs": "Technical specifications not available due to parsing error",
                 "diagnostics": {
                     "text_heavy": False,
                     "camera_motion": False,
@@ -490,8 +638,11 @@ Return ONLY valid JSON:
         typer.echo(f"Error analyzing scene {scene['id']}: {e}", err=True)
         return {
             "description": f"Scene analysis failed: {str(e)}",
+            "detailed_analysis": f"Analysis failed due to error: {str(e)}",
             "scene_prompt": f"Generate a {scene['duration']:.1f}-second video scene",
+            "veo3_prompt": f"CLIP #{scene.get('id', '1')}: Scene ({scene['duration']:.1f} seconds): Generate a video scene showing the content from the original frames.",
             "cinematic_notes": "Technical specifications not available due to analysis error",
+            "technical_specs": "Analysis failed - technical specifications unavailable",
             "diagnostics": {
                 "text_heavy": False,
                 "camera_motion": False,
@@ -575,37 +726,8 @@ def analyze_command(
         for i, scene in enumerate(scenes):
             typer.echo(f"Analyzing scene {i+1}/{len(scenes)}: {scene['id']}")
             
-            # Extract 2-3 frames from scene (beginning, middle, end if long enough)
-            frame_paths = []
-            duration = scene['duration']
-            
-            if duration <= 2.0:
-                # Short scene: extract 1 frame from middle
-                mid_time = (scene['start_seconds'] + scene['end_seconds']) / 2
-                frame_path = os.path.join(temp_dir, f"{scene['id']}_frame_1.jpg")
-                if extract_frame(video, mid_time, frame_path):
-                    frame_paths.append(frame_path)
-            elif duration <= 4.0:
-                # Medium scene: extract 2 frames (beginning and end)
-                times = [
-                    scene['start_seconds'] + 0.2,  # Beginning (slightly offset)
-                    scene['end_seconds'] - 0.2     # End (slightly offset)
-                ]
-                for j, time in enumerate(times):
-                    frame_path = os.path.join(temp_dir, f"{scene['id']}_frame_{j+1}.jpg")
-                    if extract_frame(video, time, frame_path):
-                        frame_paths.append(frame_path)
-            else:
-                # Long scene: extract 3 frames (beginning, middle, end)
-                times = [
-                    scene['start_seconds'] + 0.2,  # Beginning
-                    (scene['start_seconds'] + scene['end_seconds']) / 2,  # Middle
-                    scene['end_seconds'] - 0.2     # End
-                ]
-                for j, time in enumerate(times):
-                    frame_path = os.path.join(temp_dir, f"{scene['id']}_frame_{j+1}.jpg")
-                    if extract_frame(video, time, frame_path):
-                        frame_paths.append(frame_path)
+            # Extract frames using motion detection to capture dynamic action
+            frame_paths = extract_motion_frames(video, scene['start_seconds'], scene['end_seconds'], temp_dir, scene['id'])
             
             if frame_paths:
                 typer.echo(f"  Extracted {len(frame_paths)} frames for analysis")
@@ -629,38 +751,8 @@ def analyze_command(
                     
                     # For chunks, we need to extract frames specific to the chunk timerange
                     if chunk.get('is_chunk'):
-                        # Extract frames for this specific chunk
-                        chunk_frame_paths = []
-                        chunk_duration = chunk['duration']
-                        
-                        if chunk_duration <= 2.0:
-                            # Short chunk: 1 frame from middle
-                            mid_time = (chunk['start_seconds'] + chunk['end_seconds']) / 2
-                            frame_path = os.path.join(temp_dir, f"{chunk['id']}_frame_1.jpg")
-                            if extract_frame(video, mid_time, frame_path):
-                                chunk_frame_paths.append(frame_path)
-                        elif chunk_duration <= 4.0:
-                            # Medium chunk: 2 frames
-                            times = [
-                                chunk['start_seconds'] + 0.2,
-                                chunk['end_seconds'] - 0.2
-                            ]
-                            for j, time in enumerate(times):
-                                frame_path = os.path.join(temp_dir, f"{chunk['id']}_frame_{j+1}.jpg")
-                                if extract_frame(video, time, frame_path):
-                                    chunk_frame_paths.append(frame_path)
-                        else:
-                            # Long chunk: 3 frames
-                            times = [
-                                chunk['start_seconds'] + 0.2,
-                                (chunk['start_seconds'] + chunk['end_seconds']) / 2,
-                                chunk['end_seconds'] - 0.2
-                            ]
-                            for j, time in enumerate(times):
-                                frame_path = os.path.join(temp_dir, f"{chunk['id']}_frame_{j+1}.jpg")
-                                if extract_frame(video, time, frame_path):
-                                    chunk_frame_paths.append(frame_path)
-                        
+                        # Extract frames for this specific chunk using motion detection
+                        chunk_frame_paths = extract_motion_frames(video, chunk['start_seconds'], chunk['end_seconds'], temp_dir, chunk['id'])
                         analysis = analyze_scene_with_claude(client, chunk, chunk_frame_paths, chunk_dialogue)
                     else:
                         # Regular scene, use existing frames

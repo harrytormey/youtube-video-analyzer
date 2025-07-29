@@ -299,6 +299,7 @@ def submit_veo3_request(prompt: str, duration: float, use_fast: bool = False, ma
         "duration": duration_str,
         "resolution": "720p",  # Options: 720p, 1080p
         "quality": "medium",   # Options: low, medium, high
+        "generate_audio": True,  # Enable audio generation including narration/dialogue
         # Add consistency parameters if supported
         "seed": 42,  # Fixed seed for consistent style
         # "reference_image": reference_image_url,  # If we had a reference frame
