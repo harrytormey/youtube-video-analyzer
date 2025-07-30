@@ -15,6 +15,7 @@ from tqdm import tqdm
 load_dotenv()
 
 FAL_API_BASE = "https://fal.run/fal-ai/veo3"
+WAN_API_BASE = "https://fal.run/fal-ai/wan/v2.2-a14b/text-to-video"
 
 def get_fal_headers() -> Dict[str, str]:
     """Get headers for fal.ai API requests."""
@@ -349,6 +350,71 @@ def submit_veo3_request(prompt: str, duration: float, use_fast: bool = False, ma
     
     return last_error or {"error": "All retry attempts exhausted"}
 
+def submit_wan_request(prompt: str, duration: float, max_retries: int = 3) -> Dict[str, Any]:
+    """Submit generation request to Wan 2.2 A14B via fal.ai with retry logic."""
+    headers = get_fal_headers()
+    
+    # Wan 2.2 supports flexible duration up to 6 seconds
+    duration_capped = min(duration, 6.0)
+    
+    # Calculate frames based on duration (24 fps default)
+    # 81 frames = ~3.4s, 121 frames = ~5s at 24fps
+    target_frames = int(duration_capped * 24)
+    num_frames = max(81, min(121, target_frames))  # Clamp between 81-121
+    
+    payload = {
+        "prompt": prompt,
+        "num_frames": num_frames,
+        "frames_per_second": 24,
+        "resolution": "720p",  # Options: 480p, 580p, 720p
+        "aspect_ratio": "16:9",  # Options: 16:9, 9:16, 1:1
+        "num_inference_steps": 40,  # Default quality
+        "guidance_scale": 3.5,
+        "interpolator_model": "film",  # For smooth motion
+        "seed": 42,  # Fixed seed for consistent style
+    }
+    
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                typer.echo(f"   Retry {attempt}/{max_retries - 1}...")
+                time.sleep(5 * attempt)  # Exponential backoff
+            
+            response = requests.post(
+                WAN_API_BASE,
+                headers=headers,
+                json=payload,
+                timeout=180  # 3 minutes timeout
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result
+            else:
+                last_error = {
+                    "error": f"API request failed with status {response.status_code}",
+                    "details": response.text
+                }
+                typer.echo(f"   API Error {response.status_code} on attempt {attempt + 1}", err=True)
+                if attempt == max_retries - 1:
+                    return last_error
+                    
+        except requests.exceptions.Timeout as e:
+            last_error = {"error": f"Request timed out: {str(e)}"}
+            typer.echo(f"   ⏱️  Timeout on attempt {attempt + 1}")
+            if attempt == max_retries - 1:
+                return last_error
+                
+        except requests.exceptions.RequestException as e:
+            last_error = {"error": f"Request failed: {str(e)}"}
+            typer.echo(f"   🔌 Network error on attempt {attempt + 1}: {str(e)}")
+            if attempt == max_retries - 1:
+                return last_error
+    
+    return last_error or {"error": "All retry attempts exhausted"}
+
 def poll_generation_status(request_id: str, max_wait_time: int = 300) -> Dict[str, Any]:
     """Poll fal.ai for generation completion."""
     headers = get_fal_headers()
@@ -408,7 +474,7 @@ def download_generated_video(video_url: str, output_path: str) -> bool:
         typer.echo(f"Error downloading video: {e}", err=True)
         return False
 
-def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing: bool = True, use_fast: bool = False) -> Dict[str, Any]:
+def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing: bool = True, use_fast: bool = False, model: str = "veo3") -> Dict[str, Any]:
     """Generate a single scene clip."""
     scene_id = scene['id']
     output_path = os.path.join(output_dir, f"{scene_id}.mp4")
@@ -433,10 +499,16 @@ def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing:
     else:
         typer.echo(f"📝 {scene_id}: Detailed prompt ({len(prompt)} chars)")
     
-    typer.echo(f"🎬 Generating {scene_id} (8s - fixed by API)...")
-    
-    # Submit generation request (duration parameter is ignored since API only accepts 8s)
-    result = submit_veo3_request(prompt, 8.0, use_fast, max_retries=2)  # Pass fast flag
+    # Choose API and duration based on model
+    if model == "wan2.2":
+        actual_duration = min(scene.get('duration', 3.0), 6.0)  # Wan 2.2 max 6s
+        typer.echo(f"🎬 Generating {scene_id} ({actual_duration:.1f}s - Wan 2.2)...")
+        result = submit_wan_request(prompt, actual_duration, max_retries=2)
+    else:
+        # Veo3 model (default)
+        actual_duration = 8.0  # Veo3 fixed duration
+        typer.echo(f"🎬 Generating {scene_id} ({actual_duration:.1f}s - Veo3)...")
+        result = submit_veo3_request(prompt, actual_duration, use_fast, max_retries=2)
     
     if "error" in result:
         return {
@@ -483,12 +555,19 @@ def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing:
         }
     
     if download_generated_video(video_url, output_path):
-        # All Veo3 clips are 8 seconds (API limitation)
-        actual_duration = 8.0
-        estimated_cost = actual_duration * 0.10  # $0.10 per second estimate
-        actual_cost = result.get("cost", estimated_cost)  # Use original result, not final_result
+        # Calculate cost based on model
+        if model == "wan2.2":
+            estimated_cost = actual_duration * 0.08  # $0.08 per second for Wan 2.2
+            duration_display = f"{actual_duration:.1f}s"
+        else:
+            # Veo3 pricing
+            cost_per_second = 0.40 if use_fast else 0.75
+            estimated_cost = actual_duration * cost_per_second
+            duration_display = f"{actual_duration:.1f}s"
         
-        typer.echo(f"✅ Generated {scene_id}: {output_path} (8s)")
+        actual_cost = result.get("cost", estimated_cost)  # Use API result if available
+        
+        typer.echo(f"✅ Generated {scene_id}: {output_path} ({duration_display})")
         return {
             "scene_id": scene_id,
             "status": "completed",
@@ -526,9 +605,16 @@ def generate_command(
     max_scenes: Optional[int] = typer.Option(None, "--max-scenes", help="Limit number of scenes to generate"),
     scenes: Optional[str] = typer.Option(None, "--scenes", help="Specific scene IDs to generate (comma-separated, e.g., 'scene_01,scene_03,scene_05')"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be generated without actually doing it"),
-    fast: bool = typer.Option(False, "--fast", help="Use Veo3 Fast model (cheaper: $0.40/s vs $0.75/s)")
+    fast: bool = typer.Option(False, "--fast", help="Use Veo3 Fast model (cheaper: $0.40/s vs $0.75/s)"),
+    model: str = typer.Option("veo3", "--model", help="Generation model: 'veo3' or 'wan2.2'")
 ):
-    """Generate video clips from scene prompts using Veo3."""
+    """Generate video clips from scene prompts using AI video generation."""
+    
+    # Validate model selection
+    supported_models = ["veo3", "wan2.2"]
+    if model not in supported_models:
+        typer.echo(f"Error: Unsupported model '{model}'. Supported models: {', '.join(supported_models)}", err=True)
+        raise typer.Exit(1)
     
     if not os.path.exists(prompts):
         typer.echo(f"Error: Prompts file not found: {prompts}", err=True)
@@ -581,20 +667,33 @@ def generate_command(
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
-    # Show generation plan - calculate actual costs
-    total_duration = len(scenes) * 8.0  # All clips are 8 seconds (API fixed)
-    # fal.ai Veo3 pricing: $0.75/second with audio (standard), $0.40/second (fast)
-    cost_per_second = 0.40 if fast else 0.75  # Choose model based on --fast flag
-    model_name = "Veo3 Fast" if fast else "Standard Veo3"
+    # Show generation plan - calculate actual costs based on model
+    if model == "wan2.2":
+        # Wan 2.2: Flexible duration, $0.08/second, visual only
+        total_duration = sum(min(scene['duration'], 6.0) for scene in scenes)  # Max 6s per clip
+        cost_per_second = 0.08
+        model_name = "Wan 2.2 A14B"
+        audio_note = "visual only"
+        tip_message = f"💡 Wan 2.2 is 90% cheaper than Veo3 but doesn't generate audio"
+    else:
+        # Veo3: Fixed 8-second clips, with audio
+        total_duration = len(scenes) * 8.0  # All clips are 8 seconds (API fixed)
+        cost_per_second = 0.40 if fast else 0.75
+        model_name = "Veo3 Fast" if fast else "Standard Veo3"
+        audio_note = "with audio"
+        tip_message = f"💡 Use --fast flag for cheaper generation (${0.40:.2f}/s vs ${0.75:.2f}/s)" if not fast else f"💡 Use --model wan2.2 for 90% cost savings (visual only)"
+    
     estimated_cost = total_duration * cost_per_second
     
     typer.echo(f"\n🎬 Generation Plan:")
     typer.echo(f"Scenes to generate: {len(scenes)}")
-    typer.echo(f"Total duration: {total_duration:.1f}s (all clips are 8s - API fixed)")
-    typer.echo(f"Estimated cost: ${estimated_cost:.2f} (${cost_per_second:.2f}/second with audio)")
+    if model == "wan2.2":
+        typer.echo(f"Total duration: {total_duration:.1f}s (flexible duration, max 6s per clip)")
+    else:
+        typer.echo(f"Total duration: {total_duration:.1f}s (all clips are 8s - API fixed)")
+    typer.echo(f"Estimated cost: ${estimated_cost:.2f} (${cost_per_second:.2f}/second {audio_note})")
     typer.echo(f"Model: {model_name}")
-    if not fast:
-        typer.echo(f"💡 Tip: Use --fast flag for cheaper generation (${0.40:.2f}/s vs ${0.75:.2f}/s)")
+    typer.echo(tip_message)
     typer.echo(f"Output directory: {output_dir}")
     
     if dry_run:
@@ -602,7 +701,14 @@ def generate_command(
         for scene in scenes:
             existing = check_existing_clip(scene['id'], output_dir)
             status = "EXISTS" if existing else "GENERATE"
-            typer.echo(f"  {scene['id']}: {status} (8s - API fixed duration)")
+            
+            if model == "wan2.2":
+                scene_duration = min(scene.get('duration', 3.0), 6.0)
+                duration_desc = f"{scene_duration:.1f}s - flexible duration"
+            else:
+                duration_desc = "8s - API fixed duration"
+            
+            typer.echo(f"  {scene['id']}: {status} ({duration_desc})")
         return
     
     # Confirm before proceeding
@@ -627,7 +733,7 @@ def generate_command(
     for i, scene in enumerate(scenes, 1):
         typer.echo(f"\n[{i}/{len(scenes)}] Processing {scene['id']}...")
         
-        result = generate_single_scene(scene, output_dir, skip_existing, fast)
+        result = generate_single_scene(scene, output_dir, skip_existing, fast, model)
         results.append(result)
         total_cost += result.get('cost', 0)
         
