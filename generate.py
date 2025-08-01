@@ -284,7 +284,7 @@ def stitch_scene_chunks(chunk_paths: List[str], output_path: str, overlap_durati
         typer.echo(f"Error stitching chunks: {e}", err=True)
         return False
 
-def submit_veo3_request(prompt: str, duration: float, use_fast: bool = False, max_retries: int = 3) -> Dict[str, Any]:
+def submit_veo3_request(prompt: str, duration: float, use_fast: bool = False, reference_image_path: str = None, max_retries: int = 3) -> Dict[str, Any]:
     """Submit generation request to Veo3 via fal.ai with retry logic."""
     headers = get_fal_headers()
     
@@ -295,6 +295,10 @@ def submit_veo3_request(prompt: str, duration: float, use_fast: bool = False, ma
     # According to the API error, only "8s" is permitted
     duration_str = "8s"
     
+    # Check prompt length (some APIs have limits)
+    if len(prompt) > 4000:
+        typer.echo(f"⚠️ Warning: Prompt is {len(prompt)} chars, might be too long for API")
+    
     payload = {
         "prompt": prompt,
         "duration": duration_str,
@@ -303,8 +307,15 @@ def submit_veo3_request(prompt: str, duration: float, use_fast: bool = False, ma
         "generate_audio": True,  # Enable audio generation including narration/dialogue
         # Add consistency parameters if supported
         "seed": 42,  # Fixed seed for consistent style
-        # "reference_image": reference_image_url,  # If we had a reference frame
     }
+    
+    # Handle image-to-video vs text-to-video
+    if reference_image_path:
+        # Convert reference image to data URI and use image-to-video endpoint
+        image_url = upload_reference_image(reference_image_path)
+        if not image_url:
+            return {"error": "Failed to convert reference image"}
+        payload["image_url"] = image_url
     
     last_error = None
     
@@ -314,8 +325,15 @@ def submit_veo3_request(prompt: str, duration: float, use_fast: bool = False, ma
                 typer.echo(f"   Retry {attempt}/{max_retries - 1}...")
                 time.sleep(5 * attempt)  # Exponential backoff
             
-            # Choose endpoint based on fast flag
-            endpoint = f"{FAL_API_BASE}/fast" if use_fast else FAL_API_BASE
+            # Choose endpoint based on fast flag and image-to-video mode
+            if reference_image_path:
+                if use_fast:
+                    endpoint = f"{FAL_API_BASE}/fast/image-to-video"
+                else:
+                    endpoint = f"{FAL_API_BASE}/image-to-video"
+            else:
+                endpoint = f"{FAL_API_BASE}/fast" if use_fast else FAL_API_BASE
+            
             
             response = requests.post(
                 endpoint,
@@ -328,11 +346,14 @@ def submit_veo3_request(prompt: str, duration: float, use_fast: bool = False, ma
                 result = response.json()
                 return result
             else:
+                error_details = response.text
                 last_error = {
                     "error": f"API request failed with status {response.status_code}",
-                    "details": response.text
+                    "details": error_details
                 }
                 typer.echo(f"   API Error {response.status_code} on attempt {attempt + 1}", err=True)
+                if response.status_code == 422:
+                    typer.echo(f"   Validation Error: {error_details[:200]}...", err=True)
                 if attempt == max_retries - 1:  # Last attempt
                     return last_error
                     
@@ -450,6 +471,86 @@ def poll_generation_status(request_id: str, max_wait_time: int = 300) -> Dict[st
     
     return {"error": "Generation timeout"}
 
+def upload_reference_image(image_path: str) -> str:
+    """Convert reference image to data URI for fal.ai API."""
+    import base64
+    import mimetypes
+    
+    try:
+        # Get the MIME type
+        mime_type, _ = mimetypes.guess_type(image_path)
+        if not mime_type or not mime_type.startswith('image/'):
+            mime_type = 'image/jpeg'  # Default fallback
+        
+        # Read and encode the image
+        with open(image_path, 'rb') as f:
+            image_data = f.read()
+            encoded_data = base64.b64encode(image_data).decode('utf-8')
+            
+        # Check image size limits (fal.ai has 8MB limit)
+        image_size_mb = len(image_data) / (1024 * 1024)
+        if image_size_mb > 7:  # Leave buffer
+            typer.echo(f"⚠️ Warning: Image is {image_size_mb:.1f}MB, might be too large for API")
+        
+        # Create data URI
+        data_uri = f"data:{mime_type};base64,{encoded_data}"
+        
+        typer.echo(f"   📸 Converted image to data URI ({len(encoded_data)} chars, {image_size_mb:.1f}MB)")
+        return data_uri
+            
+    except Exception as e:
+        typer.echo(f"Error converting reference image: {e}", err=True)
+        return None
+
+def extract_reference_frame_for_scene(scene: Dict[str, Any], output_dir: str) -> Optional[str]:
+    """Extract a reference frame for a scene on-demand."""
+    try:
+        import subprocess
+        
+        # Get scene timing info
+        start_seconds = scene.get('start_seconds', 0)
+        end_seconds = scene.get('end_seconds', start_seconds + scene.get('duration', 3))
+        duration = scene.get('duration', 3)
+        
+        # Choose frame timestamp (70% through the scene for action)
+        frame_time = start_seconds + (duration * 0.7)
+        
+        # Create reference frame filename
+        scene_id = scene['id']
+        frame_filename = f"{scene_id}_reference.jpg" 
+        frame_path = os.path.join(output_dir, frame_filename)
+        
+        # Ensure output directory exists
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Extract frame using ffmpeg (assuming input.mp4 is available)
+        video_path = "input.mp4"  # This should ideally come from scene metadata
+        if not os.path.exists(video_path):
+            typer.echo(f"⚠️ Source video not found: {video_path}")
+            return None
+            
+        cmd = [
+            'ffmpeg', '-i', video_path,
+            '-ss', str(frame_time),
+            '-vframes', '1',
+            '-q:v', '2',
+            '-s', '1280x720',  # Ensure 720p+ resolution
+            frame_path,
+            '-y'  # Overwrite if exists
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode == 0 and os.path.exists(frame_path):
+            return frame_path
+        else:
+            typer.echo(f"⚠️ Frame extraction failed: {result.stderr[:100]}")
+            return None
+            
+    except Exception as e:
+        typer.echo(f"⚠️ Error extracting reference frame: {e}")
+        return None
+
 def download_generated_video(video_url: str, output_path: str) -> bool:
     """Download the generated video from fal.ai."""
     try:
@@ -474,7 +575,7 @@ def download_generated_video(video_url: str, output_path: str) -> bool:
         typer.echo(f"Error downloading video: {e}", err=True)
         return False
 
-def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing: bool = True, use_fast: bool = False, model: str = "veo3") -> Dict[str, Any]:
+def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing: bool = True, use_fast: bool = False, model: str = "veo3", use_reference_image: bool = False) -> Dict[str, Any]:
     """Generate a single scene clip."""
     scene_id = scene['id']
     output_path = os.path.join(output_dir, f"{scene_id}.mp4")
@@ -499,6 +600,24 @@ def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing:
     else:
         typer.echo(f"📝 {scene_id}: Detailed prompt ({len(prompt)} chars)")
     
+    # Get reference image path if using image-to-video
+    reference_image_path = None
+    if use_reference_image and model == "veo3":
+        # Look for extracted frames for this scene
+        frame_paths = scene.get('frame_paths', [])
+        if frame_paths:
+            # Use the best motion frame (typically the last one in our extraction logic)
+            reference_image_path = frame_paths[-1] if isinstance(frame_paths, list) else frame_paths
+            typer.echo(f"📸 Using reference image: {os.path.basename(reference_image_path)}")
+        else:
+            # Extract frame on-demand if not stored in JSON
+            typer.echo(f"📸 Extracting reference frame for {scene_id}...")
+            reference_image_path = extract_reference_frame_for_scene(scene, output_dir)
+            if reference_image_path:
+                typer.echo(f"📸 Using reference image: {os.path.basename(reference_image_path)}")
+            else:
+                typer.echo(f"⚠️ Failed to extract reference frame for {scene_id}, falling back to text-to-video")
+    
     # Choose API and duration based on model
     if model == "wan2.2":
         actual_duration = min(scene.get('duration', 3.0), 6.0)  # Wan 2.2 max 6s
@@ -507,8 +626,9 @@ def generate_single_scene(scene: Dict[str, Any], output_dir: str, skip_existing:
     else:
         # Veo3 model (default)
         actual_duration = 8.0  # Veo3 fixed duration
-        typer.echo(f"🎬 Generating {scene_id} ({actual_duration:.1f}s - Veo3)...")
-        result = submit_veo3_request(prompt, actual_duration, use_fast, max_retries=2)
+        generation_mode = "Image-to-Video" if reference_image_path else "Text-to-Video"
+        typer.echo(f"🎬 Generating {scene_id} ({actual_duration:.1f}s - Veo3 {generation_mode})...")
+        result = submit_veo3_request(prompt, actual_duration, use_fast, reference_image_path, max_retries=2)
     
     if "error" in result:
         return {
@@ -606,7 +726,8 @@ def generate_command(
     scenes: Optional[str] = typer.Option(None, "--scenes", help="Specific scene IDs to generate (comma-separated, e.g., 'scene_01,scene_03,scene_05')"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be generated without actually doing it"),
     fast: bool = typer.Option(False, "--fast", help="Use Veo3 Fast model (cheaper: $0.40/s vs $0.75/s)"),
-    model: str = typer.Option("veo3", "--model", help="Generation model: 'veo3' or 'wan2.2'")
+    model: str = typer.Option("veo3", "--model", help="Generation model: 'veo3' or 'wan2.2'"),
+    use_reference_image: bool = typer.Option(False, "--use-reference-image", help="Use extracted frames as reference images for better consistency (Veo3 only)")
 ):
     """Generate video clips from scene prompts using AI video generation."""
     
@@ -733,7 +854,7 @@ def generate_command(
     for i, scene in enumerate(scenes, 1):
         typer.echo(f"\n[{i}/{len(scenes)}] Processing {scene['id']}...")
         
-        result = generate_single_scene(scene, output_dir, skip_existing, fast, model)
+        result = generate_single_scene(scene, output_dir, skip_existing, fast, model, use_reference_image)
         results.append(result)
         total_cost += result.get('cost', 0)
         

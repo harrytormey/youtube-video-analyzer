@@ -99,10 +99,11 @@ def generate(
     scenes: Optional[str] = typer.Option(None, "--scenes", help="Specific scene IDs to generate (comma-separated, e.g., 'scene_01,scene_03,scene_05')"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be generated without actually doing it"),
     fast: bool = typer.Option(False, "--fast", help="Use Veo3 Fast model (cheaper: $0.40/s vs $0.75/s)"),
-    model: str = typer.Option("veo3", "--model", help="Generation model: 'veo3' (with audio, $0.75/s) or 'wan2.2' (visual only, $0.08/s)")
+    model: str = typer.Option("veo3", "--model", help="Generation model: 'veo3' (with audio, $0.75/s) or 'wan2.2' (visual only, $0.08/s)"),
+    use_reference_image: bool = typer.Option(False, "--use-reference-image", help="Use extracted frames as reference images for better consistency (Veo3 only)")
 ):
     """🎥 Generate video clips from scene prompts using AI video generation."""
-    generate_command(prompts=prompts, output_dir=output_dir, skip_existing=skip_existing, max_scenes=max_scenes, scenes=scenes, dry_run=dry_run, fast=fast, model=model)
+    generate_command(prompts=prompts, output_dir=output_dir, skip_existing=skip_existing, max_scenes=max_scenes, scenes=scenes, dry_run=dry_run, fast=fast, model=model, use_reference_image=use_reference_image)
 
 @app.command("stitch")
 def stitch(
