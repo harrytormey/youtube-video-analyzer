@@ -9,8 +9,10 @@ A comprehensive CLI tool that:
 3. Analyzes scenes with Claude 3.5 Sonnet using temporal sequence understanding
 4. Generates ultra-detailed, Veo3-optimized prompts with audio/narration instructions
 5. Supports cost-optimized video generation via Veo3 on fal.ai with audio synthesis
-6. Includes advanced features: scene combining, chunk splitting, dialogue transcription
-7. Tracks costs, supports dry runs, and provides comprehensive diagnostics
+6. **NEW: Image-to-video generation** using reference frames for improved consistency
+7. **Multi-model support** - Veo3 Standard/Fast and Wan 2.2 A14B options
+8. Includes advanced features: scene combining, chunk splitting, dialogue transcription
+9. Tracks costs, supports dry runs, and provides comprehensive diagnostics
 
 ## ⚙️ Command Structure
 
@@ -26,6 +28,13 @@ python cli.py analyze --video input.mp4 --threshold 0.1 --estimate-only --markdo
 # Generate with audio support and scene optimization
 python cli.py generate --prompts scene_prompts.json --output-dir ./clips/
 python cli.py generate --prompts scene_prompts.json --scenes "scene_01,scene_03" --fast
+
+# NEW: Image-to-video generation with reference frames
+python cli.py generate --prompts scene_prompts.json --use-reference-image --fast
+python cli.py generate --prompts scene_prompts.json --scenes "scene_01,scene_03" --use-reference-image
+
+# Multi-model support with cost optimization
+python cli.py generate --prompts scene_prompts.json --model wan2.2  # 90% cost savings
 python cli.py generate --prompts scene_prompts.json --max-scenes 5 --dry-run
 
 # Stitch with flexible methods and sorting
@@ -163,8 +172,10 @@ A JSON file with:
 
 ### Key Features:
 - **Audio-Enabled Generation**: `generate_audio: true` for synchronized narration/dialogue
+- **Image-to-Video Support**: `--use-reference-image` flag for improved visual consistency
+- **Multi-Model Support**: Veo3 Standard/Fast and Wan 2.2 A14B options
 - **Cost Optimization**: Automatic scene combining to maximize 8s clip usage
-- **Flexible Model Selection**: `--fast` flag for Veo3 Fast ($0.40/s vs $0.75/s)
+- **Flexible Model Selection**: `--fast` flag for Veo3 Fast ($0.40/s vs $0.75/s), `--model wan2.2` for 90% savings
 - **Selective Generation**: `--scenes` parameter for specific scene targeting
 - **Smart Caching**: Skip previously generated clips based on scene ID
 - **Robust Error Handling**: Detailed error reporting with retry logic
@@ -177,14 +188,17 @@ A JSON file with:
 - **Progress Tracking**: Real-time generation progress with cost estimates
 
 ### API Integration:
-- **Endpoint**: `https://fal.run/fal-ai/veo3` (Standard) or `/fast` (Fast model)
+- **Text-to-Video Endpoint**: `https://fal.run/fal-ai/veo3` (Standard) or `/fast` (Fast model)
+- **Image-to-Video Endpoint**: `https://fal.run/fal-ai/veo3/image-to-video` or `/fast/image-to-video`
+- **Wan 2.2 Endpoint**: `https://fal.run/fal-ai/wan/v2.2-a14b/text-to-video`
 - **Parameters**: 
   - `prompt`: Ultra-detailed scene description with audio instructions
-  - `duration`: "8s" (API-fixed duration)
+  - `image_url`: Reference image as data URI (for image-to-video only)
+  - `duration`: "8s" (Veo3 API-fixed duration)
   - `resolution`: "720p" or "1080p"
   - `quality`: "low", "medium", "high"
-  - `generate_audio`: `true` (enables narration/dialogue generation)
-- **Output**: H.264 video with AAC audio (48kHz stereo, ~140kbps)
+  - `generate_audio`: `true` (enables narration/dialogue generation for Veo3)
+- **Output**: H.264 video with AAC audio (48kHz stereo, ~140kbps) for Veo3
 
 ## 🔁 4. Clip Stitching (stitch command)
 
@@ -211,14 +225,15 @@ CLAUDE_API_KEY=...
 
 ### Accurate Cost Tracking:
 - **Claude 3.5 Sonnet**: $0.003 per 1K tokens (~1,200 tokens per scene analysis)
-- **Veo3 Standard**: $0.75/second with audio (8s clips = $6.00 each)
-- **Veo3 Fast**: $0.40/second with audio (8s clips = $3.20 each)
+- **Veo3 Standard**: $0.75/second with audio (8s clips = $6.00 each, text-to-video and image-to-video)
+- **Veo3 Fast**: $0.40/second with audio (8s clips = $3.20 each, text-to-video and image-to-video)
+- **Wan 2.2 A14B**: $0.08/second visual only (8s clips = $0.64 each, 90% savings)
 - **Real-time Estimates**: Dynamic cost calculation based on scene count and model selection
 
 ### Cost Optimization Features:
 - **Scene Combining**: Groups short scenes to maximize 8s clip usage (70-80% savings)
 - **Smart Caching**: Hash-based scene analysis and clip generation caching
-- **Model Selection**: `--fast` flag for 47% cost reduction on video generation
+- **Model Selection**: `--fast` flag for 47% cost reduction, `--model wan2.2` for 90% savings
 - **Selective Generation**: Target specific scenes with `--scenes` parameter
 - **Dry Run Mode**: `--dry-run` for cost estimation without actual generation
 
@@ -242,7 +257,58 @@ Total (Fast): $9.61
 - Exits if any scene exceeds 8s or generates 1000+ Claude tokens
 - Shows summary report: scene count, token estimate, time range
 
+## 🖼️ Image-to-Video Generation (NEW!)
+
+### Overview:
+The latest version includes Veo3's image-to-video capabilities, dramatically improving visual consistency by using reference frames from the original video to guide AI generation.
+
+### Key Benefits:
+- **Character Consistency**: Maintains consistent character appearance across all generated clips
+- **Scene Accuracy**: Generated clips match original framing, composition, and layout
+- **Visual Continuity**: Preserves colors, lighting, and visual style from source material
+- **Cost Neutral**: Same pricing as text-to-video generation ($0.40-$0.75/second)
+
+### Technical Implementation:
+- **Frame Extraction**: Automatically extracts reference frames at 70% through each scene (optimal for action moments)
+- **High Resolution**: Frames extracted at 720p+ resolution as required by Veo3 API
+- **Data URI Conversion**: Images converted to base64 data URIs for API transmission
+- **Smart Fallback**: Automatically falls back to text-to-video if frame extraction fails
+- **Error Handling**: Validates image size (<8MB) and provides detailed error reporting
+
+### Usage Examples:
+```bash
+# Standard text-to-video generation
+python cli.py generate scene_prompts.json --fast
+
+# NEW: Image-to-video with reference frames
+python cli.py generate scene_prompts.json --use-reference-image --fast
+
+# Works with scene selection
+python cli.py generate scene_prompts.json --scenes "scene_01,scene_03" --use-reference-image
+
+# Compatible with all existing workflows
+python cli.py workflow --url "https://youtu.be/abc123" --use-reference-image
+```
+
+### API Integration Details:
+- **Endpoint**: `https://fal.run/fal-ai/veo3/image-to-video` (Standard) or `/fast/image-to-video` (Fast)
+- **Additional Parameter**: `image_url` containing base64-encoded reference frame
+- **Image Requirements**: 720p+ resolution, <8MB file size, supports JPEG/PNG formats
+- **Validation**: Built-in size and format checking with warning messages
+
 ## ✅ Recent Major Improvements
+
+### Image-to-Video Generation (v3.0):
+- **Reference Frame Support**: Extract and use frames from original video as visual guides
+- **Automatic Frame Extraction**: On-demand frame extraction at optimal action moments (70% through scenes)
+- **High-Quality Processing**: 720p+ frame extraction with intelligent timestamp selection
+- **Seamless Integration**: Works with all existing scene analysis files without re-analysis
+- **Error Recovery**: Graceful fallback to text-to-video if image processing fails
+
+### Multi-Model Support (v2.3):
+- **Wan 2.2 A14B Integration**: 90% cost savings option for visual-only generation
+- **Model Selection**: `--model` parameter for choosing between Veo3 and Wan 2.2
+- **Flexible Pricing**: Options from $0.08/second (Wan 2.2) to $0.75/second (Veo3 Standard)
 
 ### Motion-Based Analysis (v2.0):
 - **Smart Frame Extraction**: Motion vector analysis to capture dynamic action moments

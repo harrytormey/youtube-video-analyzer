@@ -8,6 +8,8 @@ A powerful CLI tool that downloads YouTube videos, detects scenes using FFmpeg, 
 - 🎬 **Automatic scene detection** using FFmpeg with configurable threshold
 - 🤖 **AI-powered scene analysis** with Claude for generating Veo3-optimized prompts  
 - 🎥 **Video generation** via Veo3 on fal.ai platform
+- 🖼️ **Image-to-video generation** using reference frames for improved consistency
+- 🎛️ **Multi-model support** - Veo3 Standard/Fast and Wan 2.2 A14B
 - 🔗 **Smart video stitching** with multiple methods (concat/filter)
 - 💰 **Cost estimation** and tracking for API usage
 - 📊 **Progress tracking** with detailed logs and reports
@@ -77,8 +79,17 @@ python cli.py generate scene_prompts.json --output-dir ./clips/
 # Use fast model for 46% cost savings
 python cli.py generate scene_prompts.json --output-dir ./clips/ --fast
 
+# NEW: Image-to-video generation for improved consistency
+python cli.py generate scene_prompts.json --use-reference-image --fast
+
+# Alternative model with 90% cost savings (visual only)
+python cli.py generate scene_prompts.json --model wan2.2
+
 # Generate specific scenes by ID
 python cli.py generate scene_prompts.json --scenes "scene_01,scene_05,scene_10"
+
+# Image-to-video with specific scenes
+python cli.py generate scene_prompts.json --scenes "scene_01,scene_03" --use-reference-image --fast
 
 # Dry run (preview what would be generated)
 python cli.py generate scene_prompts.json --dry-run
@@ -147,6 +158,8 @@ yt-veo3-cli/
 - `--max-scenes` - Limit number of scenes to process
 - `--dry-run` - Preview without actually generating
 - `--fast` - Use Veo3 Fast model for 46% cost savings
+- `--use-reference-image` - Use extracted frames as reference images for improved consistency
+- `--model` - Choose generation model: 'veo3' (with audio) or 'wan2.2' (90% cheaper, visual only)
 
 ## 💰 Cost Optimization & Estimation
 
@@ -159,8 +172,9 @@ The tool automatically optimizes costs through smart scene combining and provide
 - **Typical Savings:** 70-80% cost reduction for videos with many short scenes
 
 ### Accurate Pricing (2025)
-- **Veo3 Standard:** $0.75/second with audio
+- **Veo3 Standard:** $0.75/second with audio (text-to-video and image-to-video)
 - **Veo3 Fast:** $0.40/second with audio (46% cheaper)
+- **Wan 2.2 A14B:** $0.08/second visual only (90% cheaper than Veo3)
 - **Claude Analysis:** ~$0.003/1K tokens (very cheap)
 
 Example output:
@@ -224,6 +238,50 @@ Claude analyzes each scene and provides:
    - `complex_characters` - Multiple or complex characters
    - `rapid_motion` - Fast-paced action
    - `duration_warning` - Scene exceeds 8-second limit
+
+## 🖼️ Image-to-Video Generation (NEW!)
+
+The latest version supports Veo3's image-to-video capabilities for dramatically improved consistency:
+
+### What is Image-to-Video?
+Instead of generating videos from text alone, the system now extracts reference frames from your original video and uses them to guide the AI generation process. This results in:
+- **Better Character Consistency** - Characters look the same across clips
+- **Accurate Scene Composition** - Generated clips match original framing and layout  
+- **Improved Visual Continuity** - Colors, lighting, and style stay consistent
+- **Same Cost** - No additional charge vs text-to-video generation
+
+### How to Use Image-to-Video
+```bash
+# Standard generation (text-to-video)
+python cli.py generate scene_prompts.json --fast
+
+# NEW: Image-to-video generation  
+python cli.py generate scene_prompts.json --use-reference-image --fast
+
+# Works with specific scenes too
+python cli.py generate scene_prompts.json --scenes "scene_01,scene_03" --use-reference-image --fast
+```
+
+### How It Works
+1. **Automatic Frame Extraction:** System extracts reference frames at 70% through each scene (optimal for action moments)
+2. **720p+ Quality:** Frames are extracted at high resolution as required by Veo3
+3. **Smart Fallback:** If frame extraction fails, automatically falls back to text-to-video
+4. **Seamless Integration:** Works with all existing scene analysis files
+
+Example output:
+```
+📸 Extracting reference frame for scene_01...
+📸 Using reference image: scene_01_reference.jpg
+🎬 Generating scene_01 (8.0s - Veo3 Image-to-Video)...
+   📸 Converted image to data URI (83356 chars, 0.1MB)
+✅ Video generated synchronously
+```
+
+### When to Use Image-to-Video
+- **Character-focused content** - When you need consistent character appearance
+- **Product videos** - For maintaining exact product appearance and branding
+- **Complex scenes** - When precise composition and layout matter
+- **Style consistency** - To preserve original video's visual aesthetic
 
 ## 🔧 Advanced Usage
 

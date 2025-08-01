@@ -19,12 +19,14 @@ The YouTube-to-Veo3 Scene Translator is a sophisticated pipeline that transforms
 2. **Style Transfer**: Recreate videos with different visual styles or cinematography
 3. **Audio Enhancement**: Add professional narration and sound effects to silent clips
 4. **Scene Analysis**: Deep understanding of video content for creative applications
+5. **NEW: Visual Consistency**: Maintain character and scene consistency using image-to-video generation
 
 ### Key Technologies:
 - **Video Analysis**: FFmpeg + OpenCV motion detection
 - **AI Vision**: Claude 3.5 Sonnet multimodal understanding
 - **Audio Processing**: OpenAI Whisper speech recognition
-- **Video Generation**: Google Veo3 via fal.ai API
+- **Video Generation**: Google Veo3 (text-to-video + image-to-video) and Wan 2.2 A14B via fal.ai API
+- **Image Processing**: Reference frame extraction and base64 conversion for image-to-video
 - **Orchestration**: Python + Typer CLI framework
 
 ## 🏛️ Core Architecture
@@ -35,8 +37,9 @@ The YouTube-to-Veo3 Scene Translator is a sophisticated pipeline that transforms
 ├─────────────────┤    ├─────────────────┤    ├─────────────────┤    ├─────────────────┤
 │ • YouTube DL    │───▶│ • Scene Detection│───▶│ • Scene Optimization│───▶│ • Clip Stitching│
 │ • Local Files   │    │ • Frame Extraction│   │ • Veo3 Generation │    │ • Final Assembly│
-│ • Validation    │    │ • Audio Analysis │    │ • Audio Synthesis │    │ • Metadata Export│
-└─────────────────┘    │ • Claude Analysis │    │ • Progress Tracking│    └─────────────────┘
+│ • Validation    │    │ • Audio Analysis │    │ • Image-to-Video  │    │ • Metadata Export│
+└─────────────────┘    │ • Claude Analysis │    │ • Multi-Model API │    └─────────────────┘
+                       │ • Reference Frames│    │ • Progress Tracking│    
                        └─────────────────┘    └─────────────────┘
 ```
 
@@ -94,9 +97,20 @@ optimized_scenes = optimize_scene_combinations(scenes)
 for scene_group in optimized_scenes:
     if len(scene_group) > 1:
         combined_prompt = create_multi_scene_prompt(scene_group)
-    veo3_result = generate_video(prompt, generate_audio=True)
+    
+    # NEW: Image-to-video support with reference frames
+    reference_image_path = None
+    if use_reference_image:
+        reference_image_path = extract_reference_frame_for_scene(scene, output_dir)
+    
+    # Multi-model generation support
+    if model == "wan2.2":
+        result = generate_wan_video(prompt)  # Visual only, 90% cheaper
+    else:
+        result = generate_veo3_video(prompt, reference_image_path, generate_audio=True)
+    
     if scene_group.is_combined:
-        individual_clips = split_combined_clip(veo3_result, scene_group)
+        individual_clips = split_combined_clip(result, scene_group)
 ```
 
 ### 4. Final Assembly
@@ -180,8 +194,12 @@ def analyze_scene_with_claude(frames: List[str], dialogue: str, scene: Dict) -> 
 
 #### Veo3 Video Generation:
 ```python
-def submit_veo3_request(prompt: str, use_fast: bool = False) -> Dict:
-    endpoint = "https://fal.run/fal-ai/veo3" + ("/fast" if use_fast else "")
+def submit_veo3_request(prompt: str, use_fast: bool = False, reference_image_path: str = None) -> Dict:
+    # Choose endpoint based on generation mode
+    if reference_image_path:
+        endpoint = f"https://fal.run/fal-ai/veo3/{'fast/' if use_fast else ''}image-to-video"
+    else:
+        endpoint = f"https://fal.run/fal-ai/veo3{'/fast' if use_fast else ''}"
     
     payload = {
         "prompt": prompt,
@@ -192,8 +210,36 @@ def submit_veo3_request(prompt: str, use_fast: bool = False) -> Dict:
         "seed": 42  # Consistency across generations
     }
     
+    # Add reference image for image-to-video generation
+    if reference_image_path:
+        image_url = convert_image_to_data_uri(reference_image_path)
+        payload["image_url"] = image_url
+    
     response = requests.post(endpoint, json=payload, headers=get_fal_headers())
     return handle_async_or_sync_response(response.json())
+
+def convert_image_to_data_uri(image_path: str) -> str:
+    """Convert reference image to base64 data URI for API transmission."""
+    with open(image_path, 'rb') as f:
+        image_data = f.read()
+        encoded_data = base64.b64encode(image_data).decode('utf-8')
+        mime_type = mimetypes.guess_type(image_path)[0] or 'image/jpeg'
+        return f"data:{mime_type};base64,{encoded_data}"
+
+def extract_reference_frame_for_scene(scene: Dict, output_dir: str) -> Optional[str]:
+    """Extract reference frame at optimal timestamp (70% through scene)."""
+    start_seconds = scene.get('start_seconds', 0)
+    duration = scene.get('duration', 3)
+    frame_time = start_seconds + (duration * 0.7)  # Action moment
+    
+    frame_path = os.path.join(output_dir, f"{scene['id']}_reference.jpg")
+    
+    # Extract frame using FFmpeg at 720p+ resolution
+    cmd = ['ffmpeg', '-i', 'input.mp4', '-ss', str(frame_time), 
+           '-vframes', '1', '-q:v', '2', '-s', '1280x720', frame_path, '-y']
+    
+    result = subprocess.run(cmd, capture_output=True)
+    return frame_path if result.returncode == 0 else None
 ```
 
 ### Cost Optimization System
@@ -225,7 +271,150 @@ def optimize_scene_combinations(scenes: List[Dict]) -> List[List[Dict]]:
     return optimized_groups
 ```
 
+## 🖼️ Image-to-Video Architecture (NEW!)
+
+### System Overview:
+The image-to-video system enhances the traditional text-to-video pipeline by incorporating visual reference frames extracted from the original video, providing AI generation with concrete visual guidance for improved consistency.
+
+### Architecture Flow:
+```
+Original Video Input
+    ↓
+┌────────────────┐
+│ Scene Detection│ ──→ Scene Boundaries + Timestamps
+└────────────────┘
+    ↓
+┌────────────────┐
+│ Reference Frame│ ──→ Extract Frame at 70% Through Scene
+│ Extraction     │     (Optimal Action Moment)
+└────────────────┘
+    ↓
+┌────────────────┐
+│ Image Processing│ ──→ 720p+ Resize + Base64 Encoding
+└────────────────┘     
+    ↓
+┌────────────────┐
+│ Veo3 I2V API  │ ──→ Generate Video Using Image + Prompt
+└────────────────┘
+    ↓
+Generated Video with Improved Consistency
+```
+
+### Key Components:
+
+#### 1. **Reference Frame Extraction**:
+```python
+def extract_reference_frame_for_scene(scene: Dict, output_dir: str) -> Optional[str]:
+    """Strategic frame extraction at action moments."""
+    # Calculate optimal timestamp (70% through scene)
+    start_seconds = scene['start_seconds']
+    duration = scene['duration']
+    frame_time = start_seconds + (duration * 0.7)  # Peak action timing
+    
+    # High-quality extraction with FFmpeg
+    frame_path = os.path.join(output_dir, f"{scene['id']}_reference.jpg")
+    extract_cmd = [
+        'ffmpeg', '-i', 'input.mp4',
+        '-ss', str(frame_time),           # Precise timestamp
+        '-vframes', '1',                  # Single frame
+        '-q:v', '2',                      # High quality
+        '-s', '1280x720',                 # 720p+ required by Veo3
+        frame_path, '-y'
+    ]
+    
+    return frame_path if extraction_successful else None
+```
+
+#### 2. **Image Processing Pipeline**:
+```python
+def convert_image_to_data_uri(image_path: str) -> str:
+    """Optimize image for API transmission."""
+    with open(image_path, 'rb') as f:
+        image_data = f.read()
+        
+        # Validate size constraints (<8MB for fal.ai)
+        image_size_mb = len(image_data) / (1024 * 1024)
+        if image_size_mb > 7:
+            raise ValueError(f"Image too large: {image_size_mb:.1f}MB")
+        
+        # Convert to base64 data URI
+        encoded_data = base64.b64encode(image_data).decode('utf-8')
+        mime_type = mimetypes.guess_type(image_path)[0] or 'image/jpeg'
+        
+        return f"data:{mime_type};base64,{encoded_data}"
+```
+
+#### 3. **Smart Endpoint Selection**:
+```python
+def choose_generation_endpoint(use_fast: bool, reference_image_path: str) -> str:
+    """Dynamic endpoint selection based on generation mode."""
+    base_url = "https://fal.run/fal-ai/veo3"
+    
+    if reference_image_path:
+        # Image-to-video endpoints
+        return f"{base_url}/{'fast/' if use_fast else ''}image-to-video"
+    else:
+        # Text-to-video endpoints  
+        return f"{base_url}{'/fast' if use_fast else ''}"
+```
+
+### Performance Optimizations:
+
+#### 1. **On-Demand Processing**:
+- Frames extracted only when `--use-reference-image` flag is used
+- No preprocessing overhead for text-to-video workflows
+- Automatic cleanup of temporary reference frames
+
+#### 2. **Intelligent Fallback**:
+- If frame extraction fails → automatic fallback to text-to-video
+- If image is too large → warning + fallback option
+- Graceful degradation maintains workflow continuity
+
+#### 3. **Caching Strategy**:
+- Reference frames cached in output directory
+- Reuse frames for multiple generation attempts
+- Automatic cleanup after successful generation
+
+### Quality Enhancements:
+
+#### 1. **Timestamp Optimization**:
+- **70% Rule**: Extract frames at 70% through scene duration
+- **Action Focus**: Captures peak motion/action moments
+- **Composition Quality**: Avoids transition frames and motion blur
+
+#### 2. **Resolution Standards**:
+- **Minimum 720p**: Meets Veo3 API requirements
+- **Aspect Ratio**: Maintains original video proportions
+- **Quality Settings**: High-quality JPEG compression (q:v 2)
+
 ## 🤖 AI Integration Architecture
+
+### Enhanced Multi-Modal AI Pipeline:
+```
+Video Input
+    ↓
+┌────────────────┐
+│ FFmpeg Analysis│ ──→ Scene Boundaries + Motion Vectors + Reference Frames
+└────────────────┘
+    ↓
+┌────────────────┐  
+│ Frame Extraction│ ──→ 2-5 Frames per Scene + 1 Reference Frame (70% timestamp)
+└────────────────┘
+    ↓
+┌────────────────┐
+│ Audio Analysis │ ──→ Whisper Transcription + Timestamps  
+└────────────────┘
+    ↓
+┌────────────────┐
+│ Claude 3.5     │ ──→ Ultra-Detailed Scene Analysis + Motion Understanding  
+│ Sonnet Vision  │     (300+ words, temporal understanding)
+└────────────────┘
+    ↓
+┌────────────────┐
+│ Veo3 Generation│ ──→ Text-to-Video OR Image-to-Video + H.264 + AAC Audio
+│ (Multi-Modal)  │     
+└────────────────┘
+```
 
 ### Multi-Modal AI Pipeline:
 ```
